@@ -10,6 +10,8 @@ import shutil
 
 from shutil import copyfile
 
+from StiffnessTensor import *
+
 class SolveHomogenization:
     """
     Solve 2D bi-material homogenization problem.
@@ -39,120 +41,54 @@ class SolveHomogenization:
                 )[0]
             ) + "_CM3"
             print("\t> Analyzing ",python_file," stored in ",folder)
-            # Read the stiffness tensor
-            with open(os.path.join(folder,"E_0_GP_0_tangent.csv"),"r") as fin:
-                for line in fin:
-                    if "Time" in line:
-                        who_is_who = line.split(";")
-                    if line[0] == "0":
-                        tmp = line.split(";")
-                        break
-            StiffnessFourthOrderTensor = []
-            for c,el in enumerate(tmp):
-                try:
-                    if c == 0:
-                        continue
-                    StiffnessFourthOrderTensor.append(float(el))
-                except:
-                    pass
-            if len(StiffnessFourthOrderTensor) != 81:
-                raise Exception("Wrong size.")
-            
-            """
-            Isotropic case
-            """
-            # C_66 (Voigt) -> C_1212 -> C_0101
-            index = who_is_who.index("Comp.0101")-1
-            mu = StiffnessFourthOrderTensor[index]
-            index = who_is_who.index("Comp.1111")-1
-            C_11 = StiffnessFourthOrderTensor[index]
-            K = C_11 - 4.0*mu/3.0
-            nu = (0.5-mu/(3*K))/(1+mu/(3*K))
-            E = 2*mu*(1+nu)
-            print("\t> E (isotropic): ",E)
-            print("\t> nu(isotropic): ",nu)
-
-            """
-            Orthotropic case
-            """
-            # Build the stiffness matrix of orthotropic materials
-            StiffMatOrtho = numpy.zeros((6,6))
-
-            # Index [0,0] : C_1111 -> C_11 (Voigt) -> Comp.0000
-            index = who_is_who.index("Comp.0000")-1
-            StiffMatOrtho[0,0] = StiffnessFourthOrderTensor[index]
-
-            # Index [1,1] : C_2222 -> C_22 (Voigt) -> Comp.1111
-            index = who_is_who.index("Comp.1111")-1
-            StiffMatOrtho[1,1] = StiffnessFourthOrderTensor[index]
-
-            # Index [2,2] : C_3333 -> C_33 (Voigt) -> Comp.2222
-            index = who_is_who.index("Comp.2222")-1
-            StiffMatOrtho[2,2] = StiffnessFourthOrderTensor[index]
-
-            # Index [3,3] : C_2323 -> C_44 (Voigt) -> Comp.1212
-            index = who_is_who.index("Comp.1212")-1
-            StiffMatOrtho[3,3] = StiffnessFourthOrderTensor[index]
-
-            # Index [4,4] : C_3131 -> C_55 (Voigt) -> Comp.2020
-            index = who_is_who.index("Comp.2020")-1
-            StiffMatOrtho[4,4] = StiffnessFourthOrderTensor[index]
-
-            # Index [5,5] : C_1212 -> C_66 (Voigt) -> Comp.0101
-            index = who_is_who.index("Comp.0101")-1
-            StiffMatOrtho[5,5] = StiffnessFourthOrderTensor[index]
-
-            # Index [0,1] and [1,0] : C_1122 -> C_12 (Voigt) -> Comp.0011
-            index = who_is_who.index("Comp.0011")-1
-            StiffMatOrtho[0,1] = StiffnessFourthOrderTensor[index]
-            StiffMatOrtho[1,0] = StiffnessFourthOrderTensor[index]
-            
-            # Index [0,2] and [2,0] : C_1133 -> C_13 (Voigt) -> Comp.0022
-            index = who_is_who.index("Comp.0022")-1
-            StiffMatOrtho[2,0] = StiffnessFourthOrderTensor[index]
-            StiffMatOrtho[0,2] = StiffnessFourthOrderTensor[index]
-            
-            # Index [1,2] and [2,1] : C_2233 -> C_23 (Voigt) -> Comp.1122
-            index = who_is_who.index("Comp.1122")-1
-            StiffMatOrtho[2,1] = StiffnessFourthOrderTensor[index]
-            StiffMatOrtho[1,2] = StiffnessFourthOrderTensor[index]
-            
-
-            StiffMatOrtho_2D = numpy.zeros((3,3))
-            StiffMatOrtho_2D[0,0] = StiffMatOrtho[0,0]
-            StiffMatOrtho_2D[1,1] = StiffMatOrtho[1,1]
-            StiffMatOrtho_2D[0,1] = StiffMatOrtho[0,1]
-            StiffMatOrtho_2D[1,0] = StiffMatOrtho[1,0]
-            StiffMatOrtho_2D[2,2] = StiffMatOrtho[5,5]
-
-            # Print
-            numpy.set_printoptions(formatter={'float': lambda x: format(x, '6.3e')})
-            print(StiffMatOrtho)
-
             try:
-                ComplMatOrtho_2D = numpy.linalg.inv(StiffMatOrtho_2D)
-                print("> 2D compliance matrix:")
-                print(ComplMatOrtho_2D)
-                print("\t> E_1 (orthotropic) : ",1.0/ComplMatOrtho_2D[0,0])
-                print("\t> E_2 (orthotropic) : ",1.0/ComplMatOrtho_2D[1,1])
-                print("\t> nu12(orthotropic) : ",-ComplMatOrtho_2D[0,1]/ComplMatOrtho_2D[0,0])
-                print("\t> nu21(orthotropic) : ",-ComplMatOrtho_2D[1,0]/ComplMatOrtho_2D[1,1])
-                ComplMatOrtho = numpy.linalg.inv(StiffMatOrtho)
-                print("> 3D compliance matrix:")
-                print(ComplMatOrtho)
-                print("\t> E_1 (orthotropic) : ",1.0/ComplMatOrtho[0,0])
-                print("\t> E_2 (orthotropic) : ",1.0/ComplMatOrtho[1,1])
-                print("\t> nu12(orthotropic) : ",-ComplMatOrtho[0,1]/ComplMatOrtho[0,0])
-                print("\t> nu21(orthotropic) : ",-ComplMatOrtho[1,0]/ComplMatOrtho[1,1])
+                with open(os.path.join(folder,"OrthotropicElasticProperties.csv"),"w+") as fin:
+                    stiffness4 = StiffnessTensor(
+                        os.path.join(folder,"E_0_GP_0_tangent.csv")
+                    )
+                    E, nu = stiffness4.get_isotropic_properties()
+                    print("\t> E (isotropic): ",E)
+                    print("\t> nu(isotropic): ",nu)
+                    E_1, E_2, E_3, nu_12, nu_21, nu_13, nu_31, nu_23, nu_32, G_12, G_23, G_31 = \
+                        stiffness4.get_orthotropic_properties()
+                    print("\t> E_1 (orthotropic) : ",E_1)
+                    fin.write("E_1,%.5e;\n"%E_1)
+                    print("\t> E_2 (orthotropic) : ",E_2)
+                    fin.write("E_2,%.5e;\n"%E_2)
+                    print("\t> E_3 (orthotropic) : ",E_3)
+                    fin.write("E_3,%.5e;\n"%E_3)
+                    print("\t> nu12(orthotropic) : ",nu_12)
+                    fin.write("nu_12,%.5e;\n"%nu_12)
+                    print("\t> nu21(orthotropic) : ",nu_21)
+                    fin.write("nu_21,%.5e\n"%nu_21)
+                    print("\t> nu13(orthotropic) : ",nu_13)
+                    fin.write("nu_13,%.5e;\n"%nu_13)
+                    print("\t> nu31(orthotropic) : ",nu_31)
+                    fin.write("nu_31,%.5e;\n"%nu_31)
+                    print("\t> nu23(orthotropic) : ",nu_23)
+                    fin.write("nu_23,%.5e;\n"%nu_23)
+                    print("\t> nu32(orthotropic) : ",nu_32)
+                    fin.write("nu_32,%.5e;\n"%nu_32)
+                    print("\t> G_23(orthotropic) : ",G_23)
+                    fin.write("G_23,%.5e;\n"%G_23)
+                    print("\t> G_31(orthotropic) : ",G_31)
+                    fin.write("G_31,%.5e;\n"%G_31)
+                    print("\t> G_12(orthotropic) : ",G_12)
+                    fin.write("G_12,%.5e;\n"%G_12)
             except Exception as e:
                 print(e)
                 pass
 
 
-    def Execute(self) -> None:
+    def Execute(self) -> list:
         """
         Execute Python 2 files stored in self.ToExecute list.
+        Returns
+        -------
+        List of strings:
+            List of the created folders in which results are stored.
         """
+        folders = []
         for python_file in self.ToExecute:
             print("\t> Executing ",python_file)
             # Timing the method
@@ -167,6 +103,9 @@ class SolveHomogenization:
                     ),
                     os.path.splitext(os.path.basename(python_file))[0]
                 )
+            folders.append(
+                new_folder + "_CM3"
+            )
             if not os.path.exists(new_folder +"_CM3"):
                 os.makedirs(
                     new_folder + "_CM3"
@@ -181,6 +120,25 @@ class SolveHomogenization:
                 python_file,
                 os.path.join(new_folder + "_CM3",os.path.basename(python_file))
             )
+            # Append material properties to parameter file
+            tmp = os.path.splitext(os.path.basename(python_file))[0]
+            tmp_1 = os.path.join(
+                os.path.dirname(python_file),
+                "Parameters_" + tmp.split("_",1)[-1] + ".csv"
+            )
+            tmp_2 = os.path.join(
+                new_folder + "_CM3",
+                "Parameters_" + tmp.split("_",1)[-1] + ".csv"
+            )
+            with open(tmp_1,"a") as fin:
+                fin.write("E_1,%.5e;\n"%self.E_1)
+                fin.write("E_2,%.5e;\n"%self.E_2)
+                fin.write("nu_1,%.5e;\n"%self.nu_1)
+                fin.write("nu_2,%.5e;\n"%self.nu_2)
+                fin.write("rho_1,%.5e;\n"%self.rho_1)
+                fin.write("rho_2,%.5e;\n"%self.rho_2)
+            # Copy the parameter file
+            copyfile(tmp_1,tmp_2)
             # Copy the GMSH file in the new folder
             tmp = os.path.splitext(
                     os.path.basename(python_file)
@@ -201,6 +159,7 @@ class SolveHomogenization:
             print("\t> Done in ",time.time()-start," seconds.")
             # Roll back to old working directory
             os.chdir(old_dir)
+        return folders
 
     def Create(self,files,Do_3D = False) -> None:
         """
@@ -357,14 +316,18 @@ class SolveHomogenization:
                 fin.write("mysolver.addMicroBC(microBC)\n")
 
                 if Do_3D:
-                    fin.write("mysolver.displacementBC(\"Face\",1,0,0.)\n")
-                    fin.write("mysolver.displacementBC(\"Face\",1,1,0.)\n")
-                fin.write("mysolver.displacementBC(\"Face\",1,2,0.)\n")
-                
-                if Do_3D:
-                    fin.write("mysolver.displacementBC(\"Face\",2,0,0.)\n")
-                    fin.write("mysolver.displacementBC(\"Face\",2,1,0.)\n")
-                fin.write("mysolver.displacementBC(\"Face\",2,2,0.)\n")
+                    # If 3D, cannot clamp faces because it is redundant with Periodic Boundary Conditions
+                    print()
+                else:
+                    #if Do_3D:
+                        #fin.write("mysolver.displacementBC(\"Face\",1,0,0.)\n")
+                        #fin.write("mysolver.displacementBC(\"Face\",1,1,0.)\n")
+                    fin.write("mysolver.displacementBC(\"Face\",1,2,0.)\n")
+                    
+                    #if Do_3D:
+                        #fin.write("mysolver.displacementBC(\"Face\",2,0,0.)\n")
+                        #fin.write("mysolver.displacementBC(\"Face\",2,1,0.)\n")
+                    fin.write("mysolver.displacementBC(\"Face\",2,2,0.)\n")
 
                 fin.write("print(\"> Boundary conditions created successfully.\")\n")
 
