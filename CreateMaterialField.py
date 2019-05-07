@@ -6,7 +6,11 @@ import scipy
 
 import os
 
+from GmshObjects import *
+
 from matplotlib import pyplot as plt
+
+import skimage
 
 from numba.decorators import njit
 from numba import float64
@@ -147,6 +151,398 @@ class MaterialField:
     def ToGMSH(self,Do_3D) -> list:
         """
         Transform realizations of the random material field in GMSH file.
+        """
+        print("\t" + 50*"-")
+        files_geo = []
+        domain_size = (self.Nodes[0],self.Nodes[1])
+        for config in range(len(self.eps_11)):
+            print("\t> Configuration ",config," to GMSH.")
+            for sample in range(self.Samples[config]):
+                print("\t> Realization sample ",sample," to GMSH.")
+                filename = os.path.join(
+                    self.folder,
+                    self.name,
+                    "Realization_" + str(config) + "_" + str(sample) + "_binary"
+                )
+                mat_distrib = \
+                    numpy.fromfile(
+                        filename,
+                        dtype=numpy.int64
+                    ).reshape(domain_size)
+                mat_values = numpy.unique(mat_distrib)
+                filename_geo= os.path.join(
+                    self.folder,
+                    self.name,
+                    "Realization_" + str(config) + "_" + str(sample) + "_binary.geo"
+                )
+                files_geo.append(filename_geo)
+                start = time.time()
+                # Write the .geo file
+                with open(filename_geo,"w+") as geo:
+                    # Domain length
+                    geo.write("_Lx = %.5f;\n"%self.Lengths[0])
+                    geo.write("_Ly = %.5f;\n"%self.Lengths[1])
+                    # Domain division
+                    geo.write("_nx = %d;\n"%self.Nodes[0])
+                    geo.write("_ny = %d;\n"%self.Nodes[1])
+
+                    # Labeling the material distribution
+                    all_labels = skimage.measure.label(mat_distrib,connectivity=1)
+                    # Don't want zero labels:
+                    if numpy.where(all_labels == 0):
+                        all_labels += 1
+                    # get unique labels
+                    labels = numpy.unique(all_labels)
+                    # Match the labels with the materials
+                    label_to_mat_value = []
+                    for label in labels:
+                        itemindex = numpy.where(all_labels == label)
+                        label_to_mat_value.append(
+                            [label,mat_distrib[itemindex[0][0]][itemindex[1][0]]]
+                        )
+
+                    # Create 2D surfaces
+                    list_of_surfs = []
+                    for c,label in enumerate(labels):
+                        list_of_surfs.append(Surface_2D(label,c+1))
+
+                    # Create 2D plane
+                    gmsh_plane_2D = Plane_2D(list_of_surfs)
+                    
+
+                    # Add all points
+                    counter_points = 1
+                    dx = self.Lengths[0]/self.Nodes[0]
+                    dy = self.Lengths[1]/self.Nodes[1]
+                    default_mesh_elm_size = dx
+                    default_line_density = 1
+
+                    pos_z = 0.0
+                    extrude_z = 5.0
+
+                    for row in range(self.Nodes[1]+1):
+                        for col in range(self.Nodes[0]+1):
+                            pos_y = dy * row
+                            pos_x = dx * col
+                            gmsh_plane_2D.add_point(
+                                Point(counter_points,pos_x,pos_y,pos_z,default_mesh_elm_size)
+                            )
+                            counter_points += 1
+
+                    counter_lines = 1
+
+                    # Horizontal lines between label zones
+                    for col in range(self.Nodes[0]):
+                        current_label = all_labels[col][0]
+                        for row in range(self.Nodes[1]):
+                            if all_labels[col][row] != current_label:
+                                tmp_1 = (col-0) * (self.Nodes[1]+1) + row + 1
+                                tmp_2 = (col+1) * (self.Nodes[1]+1) + row + 1
+                                gmsh_plane_2D.add_line(
+                                    Line(
+                                        counter_lines,
+                                        gmsh_plane_2D.get_point(tmp_1),
+                                        gmsh_plane_2D.get_point(tmp_2),
+                                        current_label,
+                                        all_labels[col][row],
+                                        "H",
+                                        default_line_density
+                                    )
+                                )
+                                current_label = all_labels[col][row]
+                                counter_lines += 1
+
+                    # Vertical lines between label zones
+                    for row in range(self.Nodes[1]):
+                        current_label = all_labels[0][row]
+                        for col in range(self.Nodes[0]):
+                            if all_labels[col][row] != current_label:
+                                tmp_1 = (col - 0 ) * (self.Nodes[1]+1) + row    + 1
+                                tmp_2 = (col - 0 ) * (self.Nodes[1]+1) + row +1 + 1
+                                gmsh_plane_2D.add_line(
+                                    Line(
+                                        counter_lines,
+                                        gmsh_plane_2D.get_point(tmp_1),
+                                        gmsh_plane_2D.get_point(tmp_2),
+                                        all_labels[col][row],
+                                        current_label,
+                                        "V",
+                                        default_line_density
+                                    )
+                                )
+                                current_label = all_labels[col][row]
+                                counter_lines += 1
+
+                    # External contour lines, horizontal
+                    for pt in range(self.Nodes[1]):
+                        # One side
+                        gmsh_plane_2D.add_line(
+                            Line(
+                                counter_lines,
+                                gmsh_plane_2D.get_point(pt+1),
+                                gmsh_plane_2D.get_point(pt+1+1),
+                                all_labels[0,pt],
+                                -1,
+                                "V",
+                                default_line_density
+                            )
+                        )
+                        counter_lines += 1
+                        # The other side
+                        tmp = self.Nodes[0] * (self.Nodes[1]+1)
+                        gmsh_plane_2D.add_line(
+                            Line(
+                                counter_lines,
+                                gmsh_plane_2D.get_point(tmp + pt + 1),
+                                gmsh_plane_2D.get_point(tmp + pt + 1 + 1),
+                                -1,
+                                all_labels[-1,pt],
+                                "V",
+                                default_line_density
+                            )
+                        )
+                        counter_lines += 1
+
+                    # External contour lines, vertical
+                    for pt in range(self.Nodes[0]):
+                        # On one side
+                        tmp = self.Nodes[1] + 1
+                        gmsh_plane_2D.add_line(
+                            Line(
+                                counter_lines,
+                                gmsh_plane_2D.get_point(tmp * pt + 1),
+                                gmsh_plane_2D.get_point(tmp * (pt + 1) + 1),
+                                -1,
+                                all_labels[pt,0],
+                                "H",
+                                default_line_density
+                            )
+                        )
+                        counter_lines += 1
+                        # On the other side
+                        gmsh_plane_2D.add_line(
+                            Line(
+                                counter_lines,
+                                gmsh_plane_2D.get_point(tmp * (pt+1) -1 + 1),
+                                gmsh_plane_2D.get_point(tmp * (pt + 2) - 1 + 1),
+                                all_labels[pt,-1],
+                                -1,
+                                "H",
+                                default_line_density
+                            )
+                        )
+                        counter_lines += 1
+
+
+                    gmsh_plane_2D.ToGMSH(geo)
+
+                    # Curve loops
+                    curve_loop_counter = 1
+
+                    for label in labels:
+                        lines = gmsh_plane_2D.get_lines_label(label)
+                        curve_loop_counter = gmsh_plane_2D.get_surfaces_label(label)[0].ID
+                        
+                        lines_oriented = gmsh_plane_2D.get_lines_oriented(label)
+
+                        string = "Curve Loop(%d) = {"%curve_loop_counter
+                        for i in lines_oriented:
+                            string += str(i) + ","
+                        string = string[:-1]
+                        string += "};\n"
+                        geo.write(string)
+
+                        geo.write("Plane Surface(%d) = {%d};\n"%(curve_loop_counter,curve_loop_counter))
+        
+                        geo.write("Recombine Surface {%d};\n"%(curve_loop_counter))
+                        
+                        curve_loop_counter += 1
+                    
+                    # Physical curves around the 2D plane
+                    eps = 1e-9
+                    # For y = 0
+                    geo.write(
+                        "s[] = Curve In BoundingBox{%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%(\
+                            -eps,-eps,-eps,
+                            self.Lengths[0] + eps, eps, eps
+                        )
+                    )
+                    geo.write(
+                        "Physical Curve(1) = {s[{0:#s[]-1}]};\n"
+                    )
+                    # For x = Lx
+                    geo.write(
+                        "s[] = Curve In BoundingBox{%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%(\
+                            -eps + self.Lengths[0],-eps                  ,-eps,
+                            +eps + self.Lengths[0], eps + self.Lengths[1], eps
+                        )
+                    )
+                    geo.write(
+                        "Physical Curve(2) = {s[{0:#s[]-1}]};\n"
+                    )
+                    # For y = Ly
+                    geo.write(
+                        "s[] = Curve In BoundingBox{%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%(\
+                            -eps                   ,-eps+self.Lengths[1],-eps,
+                            self.Lengths[0] + eps  , eps+self.Lengths[1], eps
+                        )
+                    )
+                    geo.write(
+                        "Physical Curve(3) = {s[{0:#s[]-1}]};\n"
+                    )
+                    # For x = 0
+                    geo.write(
+                        "s[] = Curve In BoundingBox{%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%(\
+                            -eps,-eps,-eps,
+                            +eps, eps + self.Lengths[1], eps
+                        )
+                    )
+                    geo.write(
+                        "Physical Curve(4) = {s[{0:#s[]-1}]};\n"
+                    )
+
+                    
+                    counter_phys_surf = 1
+                    
+                    for material in mat_values:
+                        surfs = []
+                        for tmp in label_to_mat_value:
+                            if tmp[1] == material:
+                                #print("> Looking for surfaces with label ",tmp[0])
+                                surfs += [x.ID for x in gmsh_plane_2D.get_surfaces_label(tmp[0])]
+                        if not surfs:
+                            raise Exception("No surface correcponding to material " + str(material))
+                        string = "Physical Surface(%d) = {"%counter_phys_surf
+                        for s in surfs:
+                            string += str(s) + ","
+                        string = string[:-1]
+                        string += "};\n"
+                        
+                        geo.write(string)
+                        
+                        # Group surface for current material
+                        geo.write("MaterialSurfaces_%d = {"%counter_phys_surf)
+                        string = ""
+                        for s in surfs:
+                            string += str(s) + ","
+                        string = string[:-1]
+                        string += "};\n"
+                        geo.write(string)
+                        
+                        # Physical volume
+                        geo.write("VolumesMaterial_%d[] = Extrude {0.0,0.0,%.3f}{\n"%(counter_phys_surf,extrude_z))
+                        geo.write("\tSurface{MaterialSurfaces_%d[{0:#MaterialSurfaces_%d[]-1}]};\n"%(\
+                            counter_phys_surf,counter_phys_surf))
+                        geo.write("\tLayers{2};\n\tRecombine;\n};\n")
+                        
+                        geo.write("Physical Volume(222%d) = {VolumesMaterial_%d[{0:#VolumesMaterial_%d[]-1}]};\n"%(\
+                            counter_phys_surf,counter_phys_surf,counter_phys_surf))
+                        
+                        counter_phys_surf += 1
+
+                    # Get surfaces with x = 0
+                    geo.write(
+                        "s[] = Surface In BoundingBox {%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%\
+                        (
+                            -eps,-eps,-eps,
+                            +eps,self.Lengths[1]+eps,extrude_z+eps
+                        )
+                    )
+
+                    geo.write(
+                        "Physical Surface (88880) = {s[{0:#s[]-1}]};\n"
+                    )
+
+                    # Get surfaces with x = self.Lengths[0]
+                    geo.write(
+                        "s[] = Surface In BoundingBox {%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%\
+                        (
+                            -eps+self.Lengths[0],-eps,-eps,
+                            +eps+self.Lengths[0],self.Lengths[1]+eps,extrude_z+eps
+                        )
+                    )
+
+                    geo.write(
+                        "Physical Surface (88881) = {s[{0:#s[]-1}]};\n"
+                    )
+
+                    # Get surfaces with y = 0
+                    geo.write(
+                        "s[] = Surface In BoundingBox {%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%\
+                        (
+                            -eps,-eps,-eps,
+                            +eps+self.Lengths[0],+eps,extrude_z+eps
+                        )
+                    )
+
+                    geo.write(
+                        "Physical Surface (88882) = {s[{0:#s[]-1}]};\n"
+                    )
+                    
+                    # Get surfaces with y = self.Lengths[1]
+                    geo.write(
+                        "s[] = Surface In BoundingBox {%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%\
+                        (
+                            -eps,-eps+self.Lengths[1],-eps,
+                            +eps+self.Lengths[0],+eps+self.Lengths[1],extrude_z+eps
+                        )
+                    )
+
+                    geo.write(
+                        "Physical Surface (88883) = {s[{0:#s[]-1}]};\n"
+                    )
+
+                    # Get surfaces with z = 0
+                    geo.write(
+                        "s[] = Surface In BoundingBox {%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%\
+                        (
+                            -eps,
+                            -eps,
+                            -eps,
+                            +eps+self.Lengths[0],
+                            +eps+self.Lengths[1],
+                            +eps
+                        )
+                    )
+
+                    geo.write(
+                        "Physical Surface (88884) = {s[{0:#s[]-1}]};\n"
+                    )
+
+                    # Get surfaces with z = ExtrudeThickness
+                    geo.write(
+                        "s[] = Surface In BoundingBox {%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%\
+                        (
+                            -eps,
+                            -eps,
+                            -eps+extrude_z,
+                            +eps+self.Lengths[0],
+                            +eps+self.Lengths[1],
+                            +eps+extrude_z
+                        )
+                    )
+
+                    geo.write(
+                        "Physical Surface (88885) = {s[{0:#s[]-1}]};\n"
+                    )
+
+                print(
+                    "\t> ",
+                    filename_geo,
+                    " successfully created (size ",
+                    os.path.getsize(filename_geo)/1e6,
+                    " MBytes) in ",
+                    time.time()-start,
+                    "seconds.")
+
+        return files_geo
+
+    
+    def ToGMSH_old(self,Do_3D) -> list:
+        """
+        Transform realizations of the random material field in GMSH file.
+        This version works but is very slow when the number of points gets high.
+        See ToGMSH for a better version
         """
         print("\t" + 50*"-")
         files_geo = []
@@ -345,10 +741,13 @@ class MaterialField:
                         # Extrude thickness
                         ExtrudeThickness = 10
 
+                        # Number of layers along z
+                        nbr_layers = 2
+
                         # Extrude all surfaces with material 1:
                         geo.write("VolumesMaterial_1[] = Extrude {0.,0.,%.5f}{\n"%ExtrudeThickness)
                         geo.write("\tSurface{MaterialSurfaces_1[{0:#MaterialSurfaces_1[]-1}]};\n")
-                        geo.write("\tLayers{4};\n")
+                        geo.write("\tLayers{%d};\n"%nbr_layers)
                         geo.write("\tRecombine;\n")
                         geo.write("};\n")
                         # Physical volume with volumes with material 1:
@@ -358,7 +757,7 @@ class MaterialField:
                         # Extrude all surfaces with material 2:
                         geo.write("VolumesMaterial_2[] = Extrude {0.,0.,%.5f}{\n"%ExtrudeThickness)
                         geo.write("\tSurface{MaterialSurfaces_2[{0:#MaterialSurfaces_2[]-1}]};\n")
-                        geo.write("\tLayers{1};\n")
+                        geo.write("\tLayers{%d};\n"%nbr_layers)
                         geo.write("\tRecombine;\n")
                         geo.write("};\n")
                         # Physical volume with volumes with material 2:
@@ -644,6 +1043,21 @@ class MaterialField:
                     format = 'eps'
                 )
                 plt.close(fig)
+                # Save the parameters
+                filename = os.path.join(
+                    self.folder,
+                    self.name,
+                    "Parameters_" + str(config) + "_" + str(sample) + "_binary.csv"
+                )
+                with open(filename,"w+") as fin:
+                    fin.write("threshold,%.5e;\n"%self.threshold)
+                    fin.write("eps_11,%.5e;\n"%eps_11)
+                    fin.write("eps_22,%.5e;\n"%eps_22)
+                    fin.write("alpha,%.5e;\n"%alpha)
+                    fin.write("lx,%.5e;\n"%self.Lengths[0])
+                    fin.write("ly,%.5e;\n"%self.Lengths[1])
+                    fin.write("nx,%.5e;\n"%self.Nodes[0])
+                    fin.write("ny,%.5e;\n"%self.Nodes[1])
             # Save the eigen values
             filename = os.path.join(
                 self.folder,
