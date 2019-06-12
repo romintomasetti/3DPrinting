@@ -1,0 +1,10 @@
+{
+    "SamplingParameterSpaceTest" : {
+        "AngleType"        : "degree",
+        "lengths"          : [100.0,100.0],
+        "nodes"            : [10,10],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [2]
+    }
+}

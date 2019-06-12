@@ -1,0 +1,8 @@
+{
+    "SamplingParameterSpaceTest_dataset1" : {
+        "datafolder" : "SamplingParameterSpaceTest",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    }
+}
