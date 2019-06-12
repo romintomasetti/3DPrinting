@@ -431,23 +431,29 @@ def GenerateData_workflow(do_computations):
     pprint.pprint(timings)
 
 if __name__ == "__main__":
+
+    project_root = os.getcwd().split("3DPrinting")[0]
+
+    print("> Project root is :",project_root)
+
     do_computations = {
         "SamplingParametersLHS" : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/ParameterSpaceSampling.json",
-            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/ParameterSpaceSampling",
-            False,False],
+            os.path.join(project_root,"3DPrinting/INPUTS/ParameterSpaceSampling.json"),
+            os.path.join(project_root,"3DPrinting/OUTPUTS/ParameterSpaceSampling"),
+            False,True],
         "GenerateGMSH"          : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/DomainProperties.json",
-            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/GMSH_FILES",
-            False],
+            os.path.join(project_root,"3DPrinting/INPUTS/DomainProperties.json"),
+            os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES"),
+            True],
         "HomogenizationProblem" : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/MaterialProperties.json",
-            False],
+            os.path.join(project_root,"3DPrinting/INPUTS/MaterialProperties.json"),
+            True],
         "GenerateDataset"       : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/DatasetParams.json",
-            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/Datasets",
+            os.path.join(project_root,"3DPrinting/INPUTS/DatasetParams.json"),
+            os.path.join(project_root,"3DPrinting/OUTPUTS/Datasets"),
             True]
     }
+    pprint.pprint(do_computations)
     GenerateData_workflow(
         do_computations = do_computations
     )
