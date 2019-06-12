@@ -48,15 +48,20 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations):
         
         # If dimension equal to 3, plot scatter
         if len(params[experiment]["mins"]) == 3 and PLOT and do_computations:
-            from mpl_toolkits.mplot3d import Axes3D
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.scatter(points[:,0], points[:,1], points[:,2], marker="o")
-            ax.set_xlabel(params[experiment]["paramsName"][0])
-            ax.set_ylabel(params[experiment]["paramsName"][1])
-            ax.set_zlabel(params[experiment]["paramsName"][2])
-            plt.show()
+            import socket
+            hostname = socket.gethostname()
+            if hostname in ["lm3-m001"]:
+                pass
+            else:
+                from mpl_toolkits.mplot3d import Axes3D
+                import matplotlib.pyplot as plt
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+                ax.scatter(points[:,0], points[:,1], points[:,2], marker="o")
+                ax.set_xlabel(params[experiment]["paramsName"][0])
+                ax.set_ylabel(params[experiment]["paramsName"][1])
+                ax.set_zlabel(params[experiment]["paramsName"][2])
+                plt.show()
 
         timings[experiment] = time.time()-start
 
