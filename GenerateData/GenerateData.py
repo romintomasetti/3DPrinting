@@ -13,7 +13,7 @@ import json,pprint,os,numpy,io,sys,time
 
 Do_3D = True
 
-def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations):
+def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only):
 
     # Check directory
     if not os.path.exists(out_dir):
@@ -32,6 +32,10 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations):
 
     # Generate sampling points for each experiment in the parameters file
     for experiment in params:
+        if do_only != -1:
+            if do_only != experiment:
+                continue
+        print("\t> ",SamplingParametersLHS.__name__," : ",experiment)
         start = time.time()
         # LHS sampling
         if do_computations:
@@ -45,6 +49,8 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations):
         if do_computations:
             numpy.save(file_names[experiment],points)
         file_names[experiment] += ".npy"
+
+        #print("> Saved to : ",file_names[experiment])
         
         # If dimension equal to 3, plot scatter
         if len(params[experiment]["mins"]) == 3 and PLOT and do_computations:
@@ -89,7 +95,7 @@ def GenerateGMSH(general_params_file,files,out_dir,do_computations):
 
         # Loop over the samples and generate GMSH file
         print(100*"-")
-        print("\t> Doing ",file)
+        print("\t> ",GenerateGMSH.__name__," : ",file)
         print("\t> Number of sampling points : ",len(params))
         start = time.time()
         for counter,point in enumerate(params):
@@ -374,7 +380,7 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
 
     return timings
                 
-def GenerateData_workflow(do_computations):
+def GenerateData_workflow(do_computations,do_only):
 
     timings = {}
 
@@ -384,10 +390,15 @@ def GenerateData_workflow(do_computations):
         param_file = do_computations["SamplingParametersLHS"][0],
         out_dir    = do_computations["SamplingParametersLHS"][1],
         PLOT       = do_computations["SamplingParametersLHS"][2],
-        do_computations = do_computations["SamplingParametersLHS"][3]
+        do_computations = do_computations["SamplingParametersLHS"][3],
+        do_only = do_only
     )
     timings["SamplingParametersLHS"] = timings_tmp
     timings["SamplingParametersLHS_all"] = time.time()-start
+
+    if len(param_sampling_files) == 0:
+        print("> Nothing was created. Exit.")
+        sys.exit()
 
     # Generate GMSH files
     start = time.time()
@@ -395,7 +406,7 @@ def GenerateData_workflow(do_computations):
         general_params_file = do_computations["GenerateGMSH"][0],
         files               = param_sampling_files,
         out_dir             = do_computations["GenerateGMSH"][1],
-        do_computations = do_computations["GenerateGMSH"][2]
+        do_computations = do_computations["GenerateGMSH"][2],
     )
     timings["GenerateGMSH"] = timings_tmp
     timings["GenerateGMSH_all"] = time.time()-start
@@ -405,7 +416,7 @@ def GenerateData_workflow(do_computations):
     folders_with_homo,timings_tmp = HomogenizationProblem(
         mat_props_file = do_computations["HomogenizationProblem"][0],
         gmsh_files     = gmsh_files,
-        do_computations = do_computations["HomogenizationProblem"][1]
+        do_computations = do_computations["HomogenizationProblem"][1],
     )
     timings["SolveHomogenization"] = timings_tmp
     timings["SolveHomogenization_all"] = time.time()-start
@@ -417,7 +428,7 @@ def GenerateData_workflow(do_computations):
         params_file         = do_computations["GenerateDataset"][0],
         do_computations     = do_computations["GenerateDataset"][2],
         out_dir             = do_computations["GenerateDataset"][1]
-    )
+        )
     timings["GenerateDataset"] = timings_tmp
     timings["GenerateDataset_all"] = time.time()-start
 
@@ -431,6 +442,11 @@ def GenerateData_workflow(do_computations):
     pprint.pprint(timings)
 
 if __name__ == "__main__":
+
+    if len(sys.argv) == 2:
+        do_only = sys.argv[1]
+    else:
+        do_only = -1
 
     project_root = os.getcwd().split("3DPrinting")[0]
 
@@ -455,5 +471,6 @@ if __name__ == "__main__":
     }
     pprint.pprint(do_computations)
     GenerateData_workflow(
-        do_computations = do_computations
+        do_computations = do_computations,
+        do_only = do_only
     )
