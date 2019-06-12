@@ -1,5 +1,5 @@
 {
-    "SamplingParameterSpaceTest" : {
+    "SamplingParameterSpaceTest_1" : {
         "AngleType"        : "degree",
         "lengths"          : [100.0,100.0],
         "nodes"            : [10,10],

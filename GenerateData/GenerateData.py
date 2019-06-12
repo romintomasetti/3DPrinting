@@ -150,15 +150,13 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
         start = time.time()
 
         # Material properties specific to current experiment
-        print(experiment)
+        print("> ",HomogenizationProblem.__name__," : ",experiment)
         mat_props = material_properties[experiment.split("/")[-1]]
-
-        text_trap = io.StringIO()
-        sys.stdout = text_trap
 
         # Initialization of the homogenization problem solver
         homogenization_solver = SolveHomogenization(
-            "homogenization_solver"
+            "homogenization_solver",
+            "output_homogenization"
         )
 
         # Assignment of material propeties
@@ -187,8 +185,6 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
         homogenization_solver.Analyse()
 
         timings[experiment.split("/")[-1]] = time.time()-start
-
-        sys.stdout = sys.__stdout__
 
     return folders_with_homo,timings
 
@@ -222,7 +218,8 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
                 folders_forDataset = folders[experiment]
                 break
         if not FOUND:
-            raise Exception("Experimental data " + folderdataname + " not found in list.")
+            Warning("Experimental data " + folderdataname + " not found in list.")
+            continue
 
         # Dataset
         dataset = {}
@@ -420,6 +417,7 @@ def GenerateData_workflow(do_computations,do_only):
     )
     timings["SolveHomogenization"] = timings_tmp
     timings["SolveHomogenization_all"] = time.time()-start
+    print("*** INFO *** Homogenization took ",timings["SolveHomogenization_all"])
 
     # Generate dataset
     start = time.time()
@@ -460,7 +458,7 @@ if __name__ == "__main__":
         "GenerateGMSH"          : [
             os.path.join(project_root,"3DPrinting/INPUTS/DomainProperties.json"),
             os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES"),
-            True],
+            False],
         "HomogenizationProblem" : [
             os.path.join(project_root,"3DPrinting/INPUTS/MaterialProperties.json"),
             True],

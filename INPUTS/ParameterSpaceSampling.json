@@ -1,5 +1,5 @@
 {
-    "SamplingParameterSpaceTest" : {
+    "SamplingParameterSpaceTest_1" : {
         "paramsName" : ["eps_11","eps_22","alpha"],
         "mins"       : [10.0,10.0,0.0],
         "maxs"       : [10000.0,10000.0,180.0],

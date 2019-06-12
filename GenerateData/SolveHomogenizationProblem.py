@@ -1,4 +1,4 @@
-import os
+import os,sys
 
 from datetime import datetime
 
@@ -16,7 +16,7 @@ class SolveHomogenization:
     """
     Solve 2D bi-material homogenization problem.
     """
-    def __init__(self,name) -> None:
+    def __init__(self,name,outname) -> None:
         """
         Initialization.
         Parameters
@@ -24,7 +24,8 @@ class SolveHomogenization:
         name : str
             Name of the solver.
         """
-        self.name = name
+        self.name    = name
+        self.outname = outname
 
     def Analyse(self) -> None:
         """
@@ -40,6 +41,9 @@ class SolveHomogenization:
                     )
                 )[0]
             ) + "_CM3"
+            sys.stdout = open(os.path.join(
+                folder,self.outname + "_analysis"
+            ),"w+")
             print("\t> Analyzing ",python_file," stored in ",folder)
             try:
                 with open(os.path.join(folder,"OrthotropicElasticProperties.csv"),"w+") as fin:
@@ -78,9 +82,10 @@ class SolveHomogenization:
             except Exception as e:
                 print(e)
                 pass
+            sys.stdout = sys.__stdout__
 
 
-    def Execute(self,do_computations = False) -> list:
+    def Execute(self,do_computations) -> list:
         """
         Execute Python 2 files stored in self.ToExecute list.
         Returns
@@ -90,7 +95,6 @@ class SolveHomogenization:
         """
         folders = []
         for python_file in self.ToExecute:
-            print("\t> Executing ",python_file)
             # Timing the method
             start = time.time()
             # Store old working directory
@@ -116,6 +120,11 @@ class SolveHomogenization:
                     os.makedirs(
                         new_folder + "_CM3"
                     )
+                # Redirect output
+                sys.stdout = open(os.path.join(
+                    folders[-1],self.outname + "_executeCM3"
+                ),"w+")
+                print("\t> Executing ",python_file)
                 # Copy the Python file in the new folder
                 copyfile(
                     python_file,
@@ -157,9 +166,11 @@ class SolveHomogenization:
                     "python %s"%os.path.basename(python_file) + 
                     " > %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0]
                 )
-            print("\t> Done in ",time.time()-start," seconds.")
-            # Roll back to old working directory
-            os.chdir(old_dir)
+                print("\t> Done in ",time.time()-start," seconds.")
+                # Roll back to old working directory
+                os.chdir(old_dir)
+                # Rool back to stdout
+                sys.stdout = sys.__stdout__
         return folders
 
     def Create(self,files,Do_3D = False) -> None:
