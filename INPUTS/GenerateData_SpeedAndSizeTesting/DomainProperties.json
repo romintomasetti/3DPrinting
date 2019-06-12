@@ -1,0 +1,90 @@
+{
+    "SamplingParameterSpaceTestSpeed_1" : {
+        "AngleType"        : "degree",
+        "lengths"          : [100.0,100.0],
+        "nodes"            : [10,10],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_2" : {
+        "AngleType"        : "degree",
+        "lengths"          : [150.0,150.0],
+        "nodes"            : [15,15],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_3" : {
+        "AngleType"        : "degree",
+        "lengths"          : [200.0,200.0],
+        "nodes"            : [20,20],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_4" : {
+        "AngleType"        : "degree",
+        "lengths"          : [250.0,250.0],
+        "nodes"            : [25,25],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_5" : {
+        "AngleType"        : "degree",
+        "lengths"          : [300.0,300.0],
+        "nodes"            : [30,30],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_6" : {
+        "AngleType"        : "degree",
+        "lengths"          : [350.0,350.0],
+        "nodes"            : [35,35],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_7" : {
+        "AngleType"        : "degree",
+        "lengths"          : [400.0,400.0],
+        "nodes"            : [40,40],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_8" : {
+        "AngleType"        : "degree",
+        "lengths"          : [500.0,500.0],
+        "nodes"            : [50,50],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_9" : {
+        "AngleType"        : "degree",
+        "lengths"          : [600.0,600.0],
+        "nodes"            : [60,60],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_10" : {
+        "AngleType"        : "degree",
+        "lengths"          : [700.0,700.0],
+        "nodes"            : [70,70],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    },
+    "SamplingParameterSpaceTestSpeed_11" : {
+        "AngleType"        : "degree",
+        "lengths"          : [1000.0,1000.0],
+        "nodes"            : [100,100],
+        "threshold"        : 0.0,
+        "consider_as_zero" : 1.0e-14,
+        "num_samples"      : [5]
+    }
+}

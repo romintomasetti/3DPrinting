@@ -1,0 +1,68 @@
+{
+    "SamplingParameterSpaceTestSpeed_1" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_1",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_2" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_2",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_3" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_3",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_4" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_4",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_5" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_5",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_6" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_6",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_7" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_7",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_8" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_8",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_9" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_9",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_10" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_10",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    },
+    "SamplingParameterSpaceTestSpeed_11" : {
+        "datafolder" : "SamplingParameterSpaceTestSpeed_11",
+        "sizeinput"  : 13,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    }
+}

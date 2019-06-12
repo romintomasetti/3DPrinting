@@ -1,0 +1,68 @@
+{
+    "SamplingParameterSpaceTestSpeed_1" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_2" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_3" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_4" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_5" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_6" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_7" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_8" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_9" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_10" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    },
+    "SamplingParameterSpaceTestSpeed_11" : {
+        "paramsName" : ["eps_11","eps_22","alpha"],
+        "mins"       : [10.0,10.0,0.0],
+        "maxs"       : [10000.0,10000.0,180.0],
+        "num_pts"    : 20
+    }
+}

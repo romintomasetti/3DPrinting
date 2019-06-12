@@ -28,8 +28,11 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations):
 
     file_names = {}
 
+    timings = {}
+
     # Generate sampling points for each experiment in the parameters file
     for experiment in params:
+        start = time.time()
         # LHS sampling
         if do_computations:
             points = LatinHyperCubicSampling(
@@ -55,7 +58,9 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations):
             ax.set_zlabel(params[experiment]["paramsName"][2])
             plt.show()
 
-    return file_names
+        timings[experiment] = time.time()-start
+
+    return file_names,timings
 
 def GenerateGMSH(general_params_file,files,out_dir,do_computations):
 
@@ -63,6 +68,8 @@ def GenerateGMSH(general_params_file,files,out_dir,do_computations):
         parameters_domain_all = json.load(fin)
     
     gmsh_files = {}
+
+    timings = {}
 
     # Loop over the files:
     for file in files:
@@ -112,7 +119,9 @@ def GenerateGMSH(general_params_file,files,out_dir,do_computations):
 
             print("\t\t> Mean generation time : ",(time.time()-start)/(counter+1))
 
-    return gmsh_files
+        timings[file] = time.time()-start
+
+    return gmsh_files,timings
 
 def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
 
@@ -122,12 +131,19 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
     # Material properties information
     material_properties = json.load(open(mat_props_file,"r"))
 
+    timings= {}
+
     # Loop over the experiments
     for experiment in gmsh_files:
+
+        start = time.time()
 
         # Material properties specific to current experiment
         print(experiment)
         mat_props = material_properties[experiment.split("/")[-1]]
+
+        text_trap = io.StringIO()
+        sys.stdout = text_trap
 
         # Initialization of the homogenization problem solver
         homogenization_solver = SolveHomogenization(
@@ -159,7 +175,11 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
 
         homogenization_solver.Analyse()
 
-    return folders_with_homo
+        timings[experiment.split("/")[-1]] = time.time()-start
+
+        sys.stdout = sys.__stdout__
+
+    return folders_with_homo,timings
 
 def GenerateDataset(folders,params_file,do_computations,out_dir):
 
@@ -169,8 +189,12 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
     # Read parameters of the datasets
     parameters = json.load(open(params_file,"r"))
 
+    timings = {}
+
     # Loop over the datasets:
     for datasetname in parameters:
+
+        start = time.time()
 
         print(50*"#")
         print("> Generating dataset ",datasetname)
@@ -217,8 +241,8 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
         dataset["Expected_validation"] = []
 
         for counter,folder in enumerate(folders_forDataset):
-            print(50*"-")
-            print("> Reading folder ",folder)
+            #print(50*"-")
+            #print("> Reading folder ",folder)
             tmp = folder.split("/")[-1]
             tmp = tmp.split("Realization_")[-1].split("binary")[0]
 
@@ -229,7 +253,7 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
             )
             if os.path.exists(param_file) is False:
                 raise Exception(param_file + " not found.")
-            print("> Reading parameter file ",param_file)
+            #print("> Reading parameter file ",param_file)
             params = numpy.zeros(dataset["size_input"])
             with open(param_file,"r") as fin:
                 for line in fin:
@@ -273,7 +297,7 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
             )
             if os.path.exists(TensorFile) is False:
                 raise Exception(TensorFile + " not found.")
-            print("> Reading tensor file ",TensorFile)
+            #print("> Reading tensor file ",TensorFile)
             stiffness4 = StiffnessTensor(TensorFile)
 
             # Assign input
@@ -332,70 +356,93 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
             
             for row in range(dataset["Input_training"].shape[0]):
 
-                tmp_size = 0
-
                 for col in range(dataset["Input_training"].shape[1]):
-                    tmp_size += 1
                     fin.write("%.5e,"%dataset["Input_training"][row,col])
                 for col in range(dataset["Expected_training"].shape[1]):
-                    tmp_size += 1
                     fin.write("%.5e"%dataset["Expected_training"][row,col])
                     if col < dataset["Expected_training"].shape[1] - 1:
                         fin.write(",")
                     else:
                         fin.write(";\n")
+
+        timings[datasetname] = time.time()-start
+
+    return timings
                 
-if __name__ == "__main__":
+def GenerateData_workflow(do_computations):
 
     timings = {}
 
-    do_computations = {
-        "SamplingParametersLHS" : False,
-        "GenerateGMSH"          : False,
-        "HomogenizationProblem" : False,
-        "GenerateDataset"       : True
-    }
-
     # LHS sampling of the parameter space:
     start = time.time()
-    param_sampling_files = SamplingParametersLHS(
-        param_file = "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/ParameterSpaceSampling.json",
-        out_dir    = "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/ParameterSpaceSampling",
-        PLOT       = False,
-        do_computations = do_computations["SamplingParametersLHS"]
+    param_sampling_files,timings_tmp = SamplingParametersLHS(
+        param_file = do_computations["SamplingParametersLHS"][0],
+        out_dir    = do_computations["SamplingParametersLHS"][1],
+        PLOT       = do_computations["SamplingParametersLHS"][2],
+        do_computations = do_computations["SamplingParametersLHS"][3]
     )
-    timings["SamplingParametersLHS"] = time.time()-start
+    timings["SamplingParametersLHS"] = timings_tmp
+    timings["SamplingParametersLHS_all"] = time.time()-start
 
     # Generate GMSH files
     start = time.time()
-    gmsh_files = GenerateGMSH(
-        general_params_file = "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/DomainProperties.json",
+    gmsh_files,timings_tmp = GenerateGMSH(
+        general_params_file = do_computations["GenerateGMSH"][0],
         files               = param_sampling_files,
-        out_dir             = "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/GMSH_FILES",
-        do_computations = do_computations["GenerateGMSH"]
+        out_dir             = do_computations["GenerateGMSH"][1],
+        do_computations = do_computations["GenerateGMSH"][2]
     )
-    timings["GenerateGMSH"] = time.time()-start
+    timings["GenerateGMSH"] = timings_tmp
+    timings["GenerateGMSH_all"] = time.time()-start
 
     # Solve homogenization problem for all generated domains
     start = time.time()
-    folders_with_homo = HomogenizationProblem(
-        mat_props_file = "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/MaterialProperties.json",
+    folders_with_homo,timings_tmp = HomogenizationProblem(
+        mat_props_file = do_computations["HomogenizationProblem"][0],
         gmsh_files     = gmsh_files,
-        do_computations = do_computations["HomogenizationProblem"]
+        do_computations = do_computations["HomogenizationProblem"][1]
     )
-    timings["SolveHomogenization"] = time.time()-start
+    timings["SolveHomogenization"] = timings_tmp
+    timings["SolveHomogenization_all"] = time.time()-start
 
     # Generate dataset
     start = time.time()
-    GenerateDataset(
+    timings_tmp = GenerateDataset(
         folders             = folders_with_homo,
-        params_file         = "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/DatasetParams.json",
-        do_computations     = do_computations["GenerateDataset"],
-        out_dir             = "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/Datasets"
+        params_file         = do_computations["GenerateDataset"][0],
+        do_computations     = do_computations["GenerateDataset"][2],
+        out_dir             = do_computations["GenerateDataset"][1]
     )
-    timings["GenerateDataset"] = time.time()-start
+    timings["GenerateDataset"] = timings_tmp
+    timings["GenerateDataset_all"] = time.time()-start
 
 
-print(100*"#")
-print("> Finished, with ",len(folders_with_homo)," samples.")
-pprint.pprint(timings)
+    print(100*"#")
+    number_of_samples = 0
+    for folder in folders_with_homo:
+        for f in folders_with_homo[folder]:
+            number_of_samples += 1
+    print("> Finished, with ",number_of_samples," samples.")
+    pprint.pprint(timings)
+
+if __name__ == "__main__":
+    do_computations = {
+        "SamplingParametersLHS" : [
+            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/ParameterSpaceSampling.json",
+            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/ParameterSpaceSampling",
+            False,False],
+        "GenerateGMSH"          : [
+            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/DomainProperties.json",
+            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/GMSH_FILES",
+            False],
+        "HomogenizationProblem" : [
+            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/MaterialProperties.json",
+            False],
+        "GenerateDataset"       : [
+            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/DatasetParams.json",
+            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/Datasets",
+            True]
+    }
+    GenerateData_workflow(
+        do_computations = do_computations
+    )
