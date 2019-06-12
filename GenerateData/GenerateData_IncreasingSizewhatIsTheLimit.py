@@ -8,21 +8,25 @@ if __name__ == "__main__":
     else:
         do_only = -1
 
+    project_root = os.getcwd().split("3DPrinting")[0]
+
+    print("> Project root is :",project_root)
+
     do_computations = {
         "SamplingParametersLHS" : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/ParameterSpaceSampling.json",
-            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/ParameterSpaceSampling",
+            os.path.join(project_root,"3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/ParameterSpaceSampling.json"),
+            os.path.join(project_root,"3DPrinting/OUTPUTS/ParameterSpaceSampling"),
             False,True],
         "GenerateGMSH"          : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/DomainProperties.json",
-            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/GMSH_FILES",
+            os.path.join(project_root,"3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/DomainProperties.json"),
+            os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES"),
             True],
         "HomogenizationProblem" : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/MaterialProperties.json",
+            os.path.join(project_root,"3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/MaterialProperties.json"),
             True],
         "GenerateDataset"       : [
-            "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/DatasetParams.json",
-            "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/Datasets",
+            os.path.join(project_root,"3DPrinting/INPUTS/GenerateData_SpeedAndSizeTesting/DatasetParams.json"),
+            os.path.join(project_root,"3DPrinting/OUTPUTS/Datasets"),
             True]
     }
     GenerateData_workflow(
