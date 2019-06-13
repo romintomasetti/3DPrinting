@@ -95,6 +95,7 @@ class SolveHomogenization:
         """
         folders = []
         for python_file in self.ToExecute:
+            print("\t> Executing ",python_file)
             # Timing the method
             start = time.time()
             # Store old working directory
@@ -121,10 +122,9 @@ class SolveHomogenization:
                         new_folder + "_CM3"
                     )
                 # Redirect output
-                sys.stdout = open(os.path.join(
+                """sys.stdout = open(os.path.join(
                     folders[-1],self.outname + "_executeCM3"
-                ),"w+")
-                print("\t> Executing ",python_file)
+                ),"w+")"""
                 # Copy the Python file in the new folder
                 copyfile(
                     python_file,
@@ -162,15 +162,32 @@ class SolveHomogenization:
                     new_folder + "_CM3"
                 )
                 # Run the Python file
+                with open("to_bash_execute.sh","w+") as fout:
+                    fout.write("module load Python/2.7.14-foss-2017b\n")
+                    fout.write("which python2\n")
+                    fout.write("python2 %s\n"%os.path.basename(python_file))
+                #os.system("bash to_bash_execute.sh> %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0])
+                import subprocess
+                proc = subprocess.Popen(
+                    ["bash","to_bash_execute.sh"],stderr=subprocess.PIPE)#, "%s.out"%os.path.splitext(os.path.basename(python_file))[0],"2>&1"])
+                while True:
+                    line = proc.stderr.readline()
+                    if not line:
+                        break
+                    #the real code does filtering here
+                    print("test:", line.rstrip())
+                print("> Subprocess done !")
+                """
                 os.system(
-                    "python %s"%os.path.basename(python_file) + 
+                    "python2 %s"%os.path.basename(python_file) + 
                     " > %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0]
                 )
+                """
                 print("\t> Done in ",time.time()-start," seconds.")
                 # Roll back to old working directory
                 os.chdir(old_dir)
                 # Rool back to stdout
-                sys.stdout = sys.__stdout__
+                #sys.stdout = sys.__stdout__
         return folders
 
     def Create(self,files,Do_3D = False) -> None:
