@@ -164,25 +164,35 @@ class SolveHomogenization:
                     new_folder + "_CM3"
                 )
                 # Run the Python file
-                with open("to_bash_execute.sh","w+") as fout:
-                    #fout.write("srun python2 %s\n"%os.path.basename(python_file))
-                    fout.write("#!/bin/bash\n")
-                    fout.write("#\n")
-                    fout.write("#SBATCH --job-name=test\n")
-                    fout.write("#SBATCH --output=res.txt\n")
-                    fout.write("#\n")
-                    fout.write("#SBATCH --ntasks=1\n")
-                    fout.write("#SBATCH --time=10:00\n")
-                    fout.write("#SBATCH --mem-per-cpu=5000\n")
-                    fout.write("module load Python/2.7.14-foss-2017b\n")
-                    fout.write("which python2\n")
-                    fout.write("mpirun python2 %s\n"%os.path.basename(python_file))
-                #os.system("bash to_bash_execute.sh> %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0])
-                import subprocess
-                subprocesses.append(subprocess.Popen(
-                    ["sbatch","-W","to_bash_execute.sh"],stdout=open("SUBPROCESS_stdout","w+"),stderr=open("SUBPROCESS_stderr","w+")))
-                #proc.wait()
-                print("> Subprocess done !")
+                import socket
+                if socket.gethostname() in ["romin-X550CL"]:
+                    print("\t> Sequential execution, without subprocess and sbatch...")
+                    os.system(
+                        "python2 %s > %s.out 2>&1"%(
+                            os.path.basename(python_file),
+                            os.path.splitext(os.path.basename(python_file))[0]
+                        )
+                    )
+                else:
+                    with open("to_bash_execute.sh","w+") as fout:
+                        #fout.write("srun python2 %s\n"%os.path.basename(python_file))
+                        fout.write("#!/bin/bash\n")
+                        fout.write("#\n")
+                        fout.write("#SBATCH --job-name=test\n")
+                        fout.write("#SBATCH --output=res.txt\n")
+                        fout.write("#\n")
+                        fout.write("#SBATCH --ntasks=1\n")
+                        fout.write("#SBATCH --time=10:00\n")
+                        fout.write("#SBATCH --mem-per-cpu=5000\n")
+                        fout.write("module load Python/2.7.14-foss-2017b\n")
+                        fout.write("which python2\n")
+                        fout.write("mpirun python2 %s\n"%os.path.basename(python_file))
+                    #os.system("bash to_bash_execute.sh> %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0])
+                    import subprocess
+                    subprocesses.append(subprocess.Popen(
+                        ["sbatch","-W","to_bash_execute.sh"],stdout=open("SUBPROCESS_stdout","w+"),stderr=open("SUBPROCESS_stderr","w+")))
+                    #proc.wait()
+                    print("> Subprocess done !")
                 """
                 os.system(
                     "python2 %s"%os.path.basename(python_file) + 
