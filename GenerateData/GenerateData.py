@@ -9,7 +9,7 @@ Generate data:
 from LatinHyperCubicSampling import LatinHyperCubicSampling
 from CreateMaterialField import *
 from SolveHomogenizationProblem import *
-import json,pprint,os,numpy,io,sys,time
+import json,pprint,os,numpy,io,sys,time,multiprocessing
 
 Do_3D = True
 
@@ -393,6 +393,10 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
 def GenerateData_workflow(do_computations,do_only):
 
     timings = {}
+
+    cpu_count = multiprocessing.cpu_count()
+
+    print("> There are ",cpu_count," cpus.")
 
     # LHS sampling of the parameter space:
     start = time.time()
