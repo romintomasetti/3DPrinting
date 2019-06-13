@@ -94,6 +94,7 @@ class SolveHomogenization:
             List of the created folders in which results are stored.
         """
         folders = []
+        subprocesses = []
         for python_file in self.ToExecute:
             print("\t> Executing ",python_file)
             # Timing the method
@@ -111,6 +112,7 @@ class SolveHomogenization:
             folders.append(
                 new_folder + "_CM3"
             )
+            proc = None
             if do_computations:
                 if not os.path.exists(new_folder +"_CM3"):
                     os.makedirs(
@@ -177,15 +179,9 @@ class SolveHomogenization:
                     fout.write("mpirun python2 %s\n"%os.path.basename(python_file))
                 #os.system("bash to_bash_execute.sh> %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0])
                 import subprocess
-                proc = subprocess.Popen(
-                    ["sbatch","-W","to_bash_execute.sh"],stdout=subprocess.PIPE)#, "%s.out"%os.path.splitext(os.path.basename(python_file))[0],"2>&1"])
-                while True:
-                    line = proc.stdout.readline()
-                    if not line:
-                        break
-                    #the real code does filtering here
-                    print("test:", line.rstrip())
-
+                subprocesses.append(subprocess.Popen(
+                    ["sbatch","-W","to_bash_execute.sh"],stdout=open("SUBPROCESS_stdout","w+"),stderr=open("SUBPROCESS_stderr","w+")))
+                #proc.wait()
                 print("> Subprocess done !")
                 """
                 os.system(
@@ -198,7 +194,7 @@ class SolveHomogenization:
                 os.chdir(old_dir)
                 # Rool back to stdout
                 #sys.stdout = sys.__stdout__
-        return folders
+        return folders,subprocesses
 
     def Create(self,files,Do_3D = False) -> None:
         """

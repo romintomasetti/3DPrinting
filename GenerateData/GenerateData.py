@@ -180,7 +180,19 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
             Do_3D = Do_3D
         )
 
-        folders_with_homo[experiment] = homogenization_solver.Execute(do_computations)
+        folders_with_homo[experiment],subprocs = homogenization_solver.Execute(do_computations)
+
+        already_done = 0
+        print("> Waiting for %d subprocesses..."%len(subprocs))
+        while not all(subpro.poll() is not None for subpro in subprocs):
+            counterdone = 0
+            for proc in subprocs:
+                if proc.poll() is not None:
+                    counterdone += 1
+            if already_done < counterdone:
+                already_done = counterdone
+                print("> Waiting for %d subprocesses, already %d done !"%(len(subprocs),already_done))
+            time.sleep(3)
 
         homogenization_solver.Analyse()
 
