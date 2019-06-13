@@ -12,6 +12,16 @@ from shutil import copyfile
 
 from StiffnessTensor import *
 
+import pathlib
+
+def delete_folder(path) :
+    pth = pathlib.Path(path)
+    for sub in pth.iterdir() :
+        if sub.is_dir() :
+            delete_folder(sub)
+        else :
+            sub.unlink()
+
 class SolveHomogenization:
     """
     Solve 2D bi-material homogenization problem.
@@ -119,10 +129,12 @@ class SolveHomogenization:
                         new_folder + "_CM3"
                     )
                 else:
-                    shutil.rmtree(new_folder + "_CM3")
-                    os.makedirs(
-                        new_folder + "_CM3"
-                    )
+                    #shutil.rmtree(new_folder + "_CM3")
+                    #os.makedirs(
+                    #    new_folder + "_CM3"
+                    #)
+                    # Depreciating shutil because it removes the folder as well, and sometimes ends in race condition with os makedirs ?
+                    delete_folder(new_folder + "_CM3")
                 # Redirect output
                 """sys.stdout = open(os.path.join(
                     folders[-1],self.outname + "_executeCM3"
