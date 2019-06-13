@@ -163,19 +163,29 @@ class SolveHomogenization:
                 )
                 # Run the Python file
                 with open("to_bash_execute.sh","w+") as fout:
+                    #fout.write("srun python2 %s\n"%os.path.basename(python_file))
+                    fout.write("#!/bin/bash\n")
+                    fout.write("#\n")
+                    fout.write("#SBATCH --job-name=test\n")
+                    fout.write("#SBATCH --output=res.txt\n")
+                    fout.write("#\n")
+                    fout.write("#SBATCH --ntasks=1\n")
+                    fout.write("#SBATCH --time=10:00\n")
+                    fout.write("#SBATCH --mem-per-cpu=5000\n")
                     fout.write("module load Python/2.7.14-foss-2017b\n")
                     fout.write("which python2\n")
-                    fout.write("python2 %s\n"%os.path.basename(python_file))
+                    fout.write("mpirun python2 %s\n"%os.path.basename(python_file))
                 #os.system("bash to_bash_execute.sh> %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0])
                 import subprocess
                 proc = subprocess.Popen(
-                    ["bash","to_bash_execute.sh"],stderr=subprocess.PIPE)#, "%s.out"%os.path.splitext(os.path.basename(python_file))[0],"2>&1"])
+                    ["sbatch","-W","to_bash_execute.sh"],stdout=subprocess.PIPE)#, "%s.out"%os.path.splitext(os.path.basename(python_file))[0],"2>&1"])
                 while True:
-                    line = proc.stderr.readline()
+                    line = proc.stdout.readline()
                     if not line:
                         break
                     #the real code does filtering here
                     print("test:", line.rstrip())
+
                 print("> Subprocess done !")
                 """
                 os.system(
