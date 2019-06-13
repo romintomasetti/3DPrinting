@@ -974,6 +974,7 @@ class MaterialField:
                 ),
                 format = "eps"
             )
+            plt.close(fig)
             # Plot the first eigenvectors
             eig_vec_to_plot = 10
             print("\t> Saving first %d eigen vectors."%eig_vec_to_plot)
