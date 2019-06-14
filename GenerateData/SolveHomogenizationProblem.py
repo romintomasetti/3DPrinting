@@ -95,7 +95,7 @@ class SolveHomogenization:
             sys.stdout = sys.__stdout__
 
 
-    def Execute(self,do_computations) -> list:
+    def Execute(self,do_computations,minutes_for_homo=40) -> list:
         """
         Execute Python 2 files stored in self.ToExecute list.
         Returns
@@ -194,7 +194,7 @@ class SolveHomogenization:
                         fout.write("#SBATCH --output=res.txt\n")
                         fout.write("#\n")
                         fout.write("#SBATCH --ntasks=1\n")
-                        fout.write("#SBATCH --time=15:00\n")
+                        fout.write("#SBATCH --time=%d:00\n"%minutes_for_homo)
                         fout.write("#SBATCH --mem-per-cpu=8000\n")
                         fout.write("module load Python/2.7.14-foss-2017b\n")
                         fout.write("which python2\n")
@@ -248,6 +248,16 @@ class SolveHomogenization:
                 fin.write("from gmshpy import *\n")
                 fin.write("from dG3Dpy import *\n")
                 fin.write("import os\n")
+                
+                # Write options:
+                fin.write("\n")
+                if Do_3D:
+                    fin.write("Do_3D = True\n")
+                else:
+                    fin.write("Do_3D = False\n")
+                    
+                fin.write("Do_planeStress = False\n")
+
                 # Write material properties
                 fin.write("\n\"\"\"\nMaterial properties\n\"\"\"\n")
                 # Young modulus
@@ -279,36 +289,42 @@ class SolveHomogenization:
                 # Geometry
                 fin.write("\n\"\"\"\nGeometry\n\"\"\"\n")
                 fin.write("mesh_file = os.path.splitext(\"%s\")[0]\n"%os.path.basename(file))
-                if not Do_3D:
-                    fin.write("if not os.path.exists(mesh_file + \".msh\"):\n"
-                        "\tif os.path.exists(mesh_file + \".geo\"):\n"
-                            "\t\tos.system(\"gmsh -2 \" + mesh_file + \".geo\")\n"
-                        "\telse:\n"
-                            "\t\traise Exception(mesh_file + \" doesn't exist.\")\n"
-                        "mesh_file = mesh_file + \".msh\"\n"
-                    )
-                else:
-                    fin.write("if not os.path.exists(mesh_file + \".msh\"):\n"
-                        "\tif os.path.exists(mesh_file + \".geo\"):\n"
-                            "\t\tos.system(\"gmsh -3 \" + mesh_file + \".geo\")\n"
-                        "\telse:\n"
-                            "\t\traise Exception(mesh_file + \" doesn't exist.\")\n"
-                        "mesh_file = mesh_file + \".msh\"\n"
-                    )
+                
+                fin.write("if Do_3D is False:\n")
+
+                fin.write("\tif not os.path.exists(mesh_file + \".msh\"):\n"
+                    "\t\tif os.path.exists(mesh_file + \".geo\"):\n"
+                        "\t\t\tos.system(\"gmsh -2 \" + mesh_file + \".geo\")\n"
+                    "\t\telse:\n"
+                        "\t\t\traise Exception(mesh_file + \" doesn't exist.\")\n"
+                    "\tmesh_file = mesh_file + \".msh\"\n"
+                )
+                
+                fin.write("else:\n")
+                fin.write("\tif not os.path.exists(mesh_file + \".msh\"):\n"
+                    "\t\tif os.path.exists(mesh_file + \".geo\"):\n"
+                        "\t\t\tos.system(\"gmsh -3 \" + mesh_file + \".geo\")\n"
+                    "\t\telse:\n"
+                        "\t\t\traise Exception(mesh_file + \" doesn't exist.\")\n"
+                    "\tmesh_file = mesh_file + \".msh\"\n"
+                )
+
                 # Domain
                 fin.write("\n\"\"\"\nCreation of domain\n\"\"\"\n")
                 # Domain of material 1
-                if not Do_3D:
-                    fin.write("domain_1 = dG3DDomain(3,1,0,1,0,2)\n")
-                    fin.write("domain_1.setPlaneStressState(True)\n")
-                else:
-                    fin.write("domain_1 = dG3DDomain(3,2221,0,1,0,3)\n")
+                fin.write("if Do_3D is False:\n")
+                fin.write("\tdomain_1 = dG3DDomain(3,1,0,1,0,2)\n")
+                fin.write("\tif Do_planeStress is True and Do_3D is False:\n")
+                fin.write("\t\tdomain_1.setPlaneStressState(True)\n")
+                fin.write("else:\n")
+                fin.write("\tdomain_1 = dG3DDomain(3,2221,0,1,0,3)\n")
                 # Domain of material 2
-                if not Do_3D:
-                    fin.write("domain_2 = dG3DDomain(3,2,0,2,0,2)\n")
-                    fin.write("domain_2.setPlaneStressState(True)\n")
-                else:
-                    fin.write("domain_2 = dG3DDomain(3,2222,0,2,0,3)\n")
+                fin.write("if Do_3D is False:\n")
+                fin.write("\tdomain_2 = dG3DDomain(3,2,0,2,0,2)\n")
+                fin.write("\tif Do_planeStress is True and Do_3D is False:\n")
+                fin.write("\t\tdomain_2.setPlaneStressState(True)\n")
+                fin.write("else:\n")
+                fin.write("\tdomain_2 = dG3DDomain(3,2222,0,2,0,3)\n")
                 fin.write("print(\"> Domains created successfully.\")\n")
                 # Solver parameters
                 fin.write("\n\"\"\"\nSolver parameters\n\"\"\"\n")
@@ -319,7 +335,7 @@ class SolveHomogenization:
                 # number of step (used only if soltype=1)
                 fin.write("nstep = 1\n")
                 # Final time (used only if soltype=1)
-                fin.write("ftime =1.\n")
+                fin.write("ftime =0.\n")
                 # relative tolerance for NR scheme (used only if soltype=1) 
                 fin.write("tol=1.e-6\n")
                 # Number of step between 2 archiving (used only if soltype=1)
@@ -352,16 +368,16 @@ class SolveHomogenization:
                 # Boundary conditions
                 fin.write("\n\"\"\"\nBoundary conditions\n\"\"\"\n")
                 # nonLinearPeriodicBC(tag,dimension)
-                if not Do_3D:
-                    fin.write("microBC = nonLinearPeriodicBC(3,2)\n")
-                else:
-                    fin.write("microBC = nonLinearPeriodicBC(3,3)\n")
+                fin.write("if Do_3D is False:\n")
+                fin.write("\tmicroBC = nonLinearPeriodicBC(3,2)\n")
+                fin.write("else:\n")
+                fin.write("\tmicroBC = nonLinearPeriodicBC(3,3)\n")
                 fin.write("microBC.setOrder(1)\n")
                 # Periodic boundary conditions on 4 lines of tag 1, 2, 3, 4
-                if not Do_3D:
-                    fin.write("microBC.setBCPhysical(1,4,3,2)\n")
-                else:
-                    fin.write("microBC.setBCPhysical(88880,88883,88884,88881,88882,88885)\n")
+                fin.write("if Do_3D is False:\n")
+                fin.write("\tmicroBC.setBCPhysical(1,4,3,2)\n")
+                fin.write("else:")
+                fin.write("\tmicroBC.setBCPhysical(88880,88883,88884,88881,88882,88885)\n")
 
                 fin.write("method =0	# Periodic mesh = 0, Langrange interpolation = 1, Cubic spline interpolation =2,  FE linear= 3, FE Quad = 4\n")
                 fin.write("degree = 2	# Order used for polynomial interpolation\n")
@@ -442,6 +458,11 @@ class SolveHomogenization:
                 # solve
                 fin.write("print(\"> Launching solver.\")\n")
                 fin.write("mysolver.solve()\n")
+
+                fin.write("\nif Do_3D:\n")
+                fin.write("\tprint(\"> In 3D\")\n")
+                fin.write("else:\n")
+                fin.write("\tprint(\"> In 2D\")\n")
 
 
     def assign_material_properties(self,E_1,E_2,nu_1,nu_2,rho_1,rho_2):

@@ -155,7 +155,7 @@ class MaterialField:
 
         self.RatioHighestSmallestEig = RatioHighestSmallestEig
 
-    def ToGMSH(self,Do_3D) -> list:
+    def ToGMSH(self,Do_3D,num_3d_layers=1) -> list:
         """
         Transform realizations of the random material field in GMSH file.
         """
@@ -410,6 +410,8 @@ class MaterialField:
 
                     
                     counter_phys_surf = 1
+
+                    geo.write("LAYERS = %d;\n"%num_3d_layers)
                     
                     for material in mat_values:
                         surfs = []
@@ -427,6 +429,10 @@ class MaterialField:
                         
                         geo.write(string)
                         
+                        if not Do_3D:
+                            geo.write("If (0)\n")
+                        else:
+                            geo.write("If (1)\n")
                         # Group surface for current material
                         geo.write("MaterialSurfaces_%d = {"%counter_phys_surf)
                         string = ""
@@ -440,13 +446,19 @@ class MaterialField:
                         geo.write("VolumesMaterial_%d[] = Extrude {0.0,0.0,%.3f}{\n"%(counter_phys_surf,extrude_z))
                         geo.write("\tSurface{MaterialSurfaces_%d[{0:#MaterialSurfaces_%d[]-1}]};\n"%(\
                             counter_phys_surf,counter_phys_surf))
-                        geo.write("\tLayers{2};\n\tRecombine;\n};\n")
+                        geo.write("\tLayers{LAYERS};\n\tRecombine;\n};\n")
                         
                         geo.write("Physical Volume(222%d) = {VolumesMaterial_%d[{0:#VolumesMaterial_%d[]-1}]};\n"%(\
                             counter_phys_surf,counter_phys_surf,counter_phys_surf))
                         
+                        geo.write("EndIf\n")
+                    
                         counter_phys_surf += 1
 
+                    if not Do_3D:
+                        geo.write("If (0)\n")
+                    else:
+                        geo.write("If (1)\n")
                     # Get surfaces with x = 0
                     geo.write(
                         "s[] = Surface In BoundingBox {%.15f,%.15f,%.15f,%.15f,%.15f,%.15f};\n"%\
@@ -532,6 +544,8 @@ class MaterialField:
                     geo.write(
                         "Physical Surface (88885) = {s[{0:#s[]-1}]};\n"
                     )
+
+                    geo.write("EndIf\n")
 
                 print(
                     "\t> ",
@@ -868,7 +882,7 @@ class MaterialField:
 
         return files_geo
 
-    def Create(self) -> None:
+    def Create(self,eig_vec_to_plot = 0) -> None:
         """
         Create the material fields.
         """
@@ -976,7 +990,6 @@ class MaterialField:
             )
             plt.close(fig)
             # Plot the first eigenvectors
-            eig_vec_to_plot = 10
             print("\t> Saving first %d eigen vectors."%eig_vec_to_plot)
             for i in range(numpy.min(numpy.asarray([eig_vec_to_plot,len(eig_values)]))):
                 fig = plt.figure()

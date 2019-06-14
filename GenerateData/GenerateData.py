@@ -276,6 +276,8 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
                 raise Exception(param_file + " not found.")
             #print("> Reading parameter file ",param_file)
             params = numpy.zeros(dataset["size_input"])
+            input_names  = []
+            output_names = []
             with open(param_file,"r") as fin:
                 for line in fin:
                     # We are not interested in the threshold
@@ -283,32 +285,45 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
                         continue
                     elif "eps_11" in line:
                         params[0] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("eps_11")
                     elif "eps_22" in line:
                         params[1] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("eps_22")
                     elif "alpha" in line:
                         params[2] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("alpha")
                     elif "lx" in line:
                         params[3] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("lx")
                     elif "ly" in line:
                         params[4] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("ly")
                     elif "nx" in line:
                         tmp       = float(line.split(",")[1].split(";")[0])
                         params[5] = params[3] / tmp
+                        input_names.append("nx")
                     elif "ny" in line:
                         tmp = float(line.split(",")[1].split(";")[0])
                         params[6] = params[4] / tmp
+                        input_names.append("ny")
                     elif "E_1" in line:
                         params[7] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("E_1")
                     elif "E_2" in line:
                         params[8] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("E_2")
                     elif "nu_1" in line:
                         params[9] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("nu_1")
                     elif "nu_2" in line:
                         params[10] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("nu_2")
                     elif "rho_1" in line:
                         params[11] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("rho_1")
                     elif "rho_2" in line:
                         params[12] = float(line.split(",")[1].split(";")[0])
+                        input_names.append("rho_2")
                     else:
                         raise Exception("Cannot parse line " + line)
             # Elastic tensor file
@@ -328,52 +343,75 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
             output = numpy.zeros(dataset["size_output"])
             if len(output) >= 1:
                 output[0] = stiffness4.get(0,0,0,0)
+                output_names.append("C_0000")
             if len(output) >= 2:
                 output[1] = stiffness4.get(1,1,1,1)
+                output_names.append("C_1111")
             if len(output) >= 3:
                 output[2] = stiffness4.get(2,2,2,2)
+                output_names.append("C_2222")
             if len(output) >= 4:
                 output[3] = stiffness4.get(0,0,1,1)
+                output_names.append("C_0011")
             if len(output) >= 5:
                 output[4] = stiffness4.get(0,0,2,2)
+                output_names.append("C_0022")
             if len(output) >= 6:
                 output[5] = stiffness4.get(1,1,2,2)
+                output_names.append("C_1122")
             if len(output) >= 7:
                 output[6] = stiffness4.get(0,0,1,2)
+                output_names.append("C_0012")
             if len(output) >= 8:
                 output[7] = stiffness4.get(1,1,1,2)
+                output_names.append("C_1112")
             if len(output) >= 9:
                 output[8] = stiffness4.get(2,2,1,2)
+                output_names.append("C_2212")
             if len(output) >= 10:
                 output[9] = stiffness4.get(1,2,1,2)
+                output_names.append("C_1212")
             if len(output) >= 11:
                 output[10] = stiffness4.get(0,0,0,2)
+                output_names.append("C_0002")
             if len(output) >= 12:
                 output[11] = stiffness4.get(1,1,0,2)
+                output_names.append("C_1102")
             if len(output) >= 13:
                 output[12] = stiffness4.get(2,2,0,2)
+                output_names.append("C_2202")
             if len(output) >= 14:
                 output[13] = stiffness4.get(1,2,0,2)
+                output_names.append("C_1202")
             if len(output) >= 15:
                 output[14] = stiffness4.get(0,2,0,2)
+                output_names.append("C_0202")
             if len(output) >= 16:
                 output[15] = stiffness4.get(0,0,0,2)
+                output_names.append("C_0002")
             if len(output) >= 17:
                 output[16] = stiffness4.get(1,1,0,1)
+                output_names.append("C_1101")
             if len(output) >= 18:
                 output[17] = stiffness4.get(2,2,0,1)
+                output_names.append("C_2201")
             if len(output) >= 19:
                 output[18] = stiffness4.get(1,2,0,1)
+                output_names.append("C_1201")
             if len(output) >= 20:
                 output[19] = stiffness4.get(0,2,0,1)
+                output_names.append("C_0201")
             if len(output) >= 21:
                 output[20] = stiffness4.get(0,1,0,1)
+                output_names.append("C_0101")
             dataset["Expected_training"][counter,:] = output
         
         with open(os.path.join(out_dir,datasetname + ".csv"),"w+") as fin:
 
             fin.write("input,%d;\n"%dataset["size_input"])
             fin.write("output,%d;\n"%dataset["size_output"])
+
+            fin.write("ordering:" + ",".join(input_names) + "," + ",".join(output_names) + "\n")
             
             for row in range(dataset["Input_training"].shape[0]):
 
