@@ -8,12 +8,14 @@ Generate data:
 """
 from LatinHyperCubicSampling import LatinHyperCubicSampling
 from CreateMaterialField import *
+from CreateMaterialField_Ellipse import *
 from SolveHomogenizationProblem import *
+from GenerateEllipse import GenerateEllipse
 import json,pprint,os,numpy,io,sys,time,multiprocessing
 
 Do_3D = True
 
-def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only):
+def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only,typeField,params_domain=None):
 
     # Check directory
     if not os.path.exists(out_dir):
@@ -39,11 +41,49 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only):
         start = time.time()
         # LHS sampling
         if do_computations:
-            points = LatinHyperCubicSampling(
-                params[experiment]["mins"],
-                params[experiment]["maxs"],
-                params[experiment]["num_pts"]
-            )
+            if typeField != "Ellipse":
+                points = LatinHyperCubicSampling(
+                    params[experiment]["mins"],
+                    params[experiment]["maxs"],
+                    params[experiment]["num_pts"]
+                )
+            else:
+                params_dom = json.load(open(params_domain,"r"))
+                domain_limits = params_dom[experiment]["domain_limits"]
+                length_x = domain_limits[0][1]-domain_limits[0][0]
+                length_y = domain_limits[1][1]-domain_limits[1][0]
+                if params_dom[experiment]["AngleType"] == "degree":
+                    angle_max = 180.0
+                else:
+                    angle_max = numpy.pi
+                points = LatinHyperCubicSampling(
+                    [
+                        0.05*length_x,0.05*length_y,
+                        0.0,
+                        domain_limits[0][0]/4.0,domain_limits[1][0]/4.0
+                    ],
+                    [
+                        length_x/2.0,length_y/2.0,
+                        angle_max,
+                        domain_limits[0][1]/4.0,domain_limits[1][1]/4.0
+                    ],
+                    params[experiment]["num_pts"]
+                )
+                # Check ellipses lie inside domain and check aspect ratio
+                aspect_max = params[experiment]["aspectRatio"]
+                to_take = []
+                for counter_point,point in enumerate(points):
+                    ellipse = GenerateEllipse(
+                        point[0],point[1],point[2],point[3],point[4]
+                    )
+                    if not ellipse.LiesInside(domain_limits[0],domain_limits[1])\
+                        or ellipse.GetAspectRatio() > aspect_max\
+                        or ellipse.GetAspectRatio() < 1.0/aspect_max:
+                        pass
+                    else:
+                        to_take.append(counter_point)
+                print("\t\t> Selecting ",len(to_take)," ellipses out of ",len(points)," !")
+                points = points[to_take]
         # Save points
         file_names[experiment] = os.path.join(out_dir,experiment)
         if do_computations:
@@ -53,7 +93,8 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only):
         #print("> Saved to : ",file_names[experiment])
         
         # If dimension equal to 3, plot scatter
-        if len(params[experiment]["mins"]) == 3 and PLOT and do_computations:
+        if "mins" in params[experiment] and\
+            len(params[experiment]["mins"]) == 3 and PLOT and do_computations:
             import socket
             hostname = socket.gethostname()
             if hostname in ["lm3-m001"]:
@@ -73,7 +114,7 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only):
 
     return file_names,timings
 
-def GenerateGMSH(general_params_file,files,out_dir,do_computations):
+def GenerateGMSH(general_params_file,files,out_dir,do_computations,typeField):
 
     with open(general_params_file,"r") as fin:
         parameters_domain_all = json.load(fin)
@@ -106,25 +147,42 @@ def GenerateGMSH(general_params_file,files,out_dir,do_computations):
             text_trap = io.StringIO()
             sys.stdout = text_trap
 
-            MatFieldCreator = MaterialField(
-                "sample_" + str(counter),
-                os.path.join(out_dir,file),
-                domain_params["threshold"],
-                [point[0]],# * numpy.ones(domain_params["num_samples"],dtype=numpy.float64),
-                [point[1]],# * numpy.ones(domain_params["num_samples"],dtype=numpy.float64),
-                [point[2]],# * numpy.ones(domain_params["num_samples"],dtype=numpy.float64),
-                domain_params["lengths"],
-                domain_params["nodes"],
-                domain_params["num_samples"],
-                domain_params["consider_as_zero"],
-                domain_params["AngleType"],
-                isOrthotropicTest = False,
-                RatioHighestSmallestEig = 100.0
-            )
-            if do_computations:
-                MatFieldCreator.Create()
-            gmsh_files[os.path.join(out_dir,file)]["_sample_" + str(counter)] = \
-                MatFieldCreator.ToGMSH(Do_3D = Do_3D)
+            if typeField != "Ellipse":
+                MatFieldCreator = MaterialField(
+                    "sample_" + str(counter),
+                    os.path.join(out_dir,file),
+                    domain_params["threshold"],
+                    [point[0]],# * numpy.ones(domain_params["num_samples"],dtype=numpy.float64),
+                    [point[1]],# * numpy.ones(domain_params["num_samples"],dtype=numpy.float64),
+                    [point[2]],# * numpy.ones(domain_params["num_samples"],dtype=numpy.float64),
+                    domain_params["lengths"],
+                    domain_params["nodes"],
+                    domain_params["num_samples"],
+                    domain_params["consider_as_zero"],
+                    domain_params["AngleType"],
+                    isOrthotropicTest = False,
+                    RatioHighestSmallestEig = 100.0
+                )
+                if do_computations:
+                    MatFieldCreator.Create()
+                gmsh_files[os.path.join(out_dir,file)]["_sample_" + str(counter)] = \
+                    MatFieldCreator.ToGMSH(Do_3D = Do_3D)
+            else:
+                MatFieldCreator = MaterialField_Ellipse(
+                    "sample_" + str(counter),
+                    os.path.join(out_dir,file),
+                    domain_params["domain_limits"],
+                    domain_params["nodes"],
+                    point[0],
+                    point[1],
+                    point[2],
+                    point[3],
+                    point[4]
+                )
+                if do_computations:
+                    MatFieldCreator.Create()
+                gmsh_files[os.path.join(out_dir,file)]["_sample_" + str(counter)] = \
+                    MatFieldCreator.ToGMSH(Do_3D = Do_3D)
 
             sys.stdout = sys.__stdout__
 
@@ -201,7 +259,7 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
 
     return folders_with_homo,timings
 
-def GenerateDataset(folders,params_file,do_computations,out_dir):
+def GenerateDataset(folders,params_file,do_computations,out_dir,typeField):
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -216,10 +274,10 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
 
         start = time.time()
 
+        folderdataname = parameters[datasetname]["datafolder"]
+
         print(50*"#")
         print("> Generating dataset ",datasetname)
-
-        folderdataname = parameters[datasetname]["datafolder"]
 
         # Loop over the experiments (folders) to find the right one
         FOUND = False
@@ -233,6 +291,8 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
         if not FOUND:
             Warning("Experimental data " + folderdataname + " not found in list.")
             continue
+        else:
+            print("> Found " + folderdataname)
 
         # Dataset
         dataset = {}
@@ -276,56 +336,73 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
                 raise Exception(param_file + " not found.")
             #print("> Reading parameter file ",param_file)
             params = numpy.zeros(dataset["size_input"])
-            input_names  = []
+            input_names  = ["" for x in params]
             output_names = []
             with open(param_file,"r") as fin:
                 for line in fin:
-                    # We are not interested in the threshold
-                    if "threshold" in line:
-                        continue
-                    elif "eps_11" in line:
-                        params[0] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("eps_11")
-                    elif "eps_22" in line:
-                        params[1] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("eps_22")
-                    elif "alpha" in line:
-                        params[2] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("alpha")
-                    elif "lx" in line:
-                        params[3] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("lx")
-                    elif "ly" in line:
-                        params[4] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("ly")
-                    elif "nx" in line:
-                        tmp       = float(line.split(",")[1].split(";")[0])
-                        params[5] = params[3] / tmp
-                        input_names.append("nx")
-                    elif "ny" in line:
-                        tmp = float(line.split(",")[1].split(";")[0])
-                        params[6] = params[4] / tmp
-                        input_names.append("ny")
-                    elif "E_1" in line:
-                        params[7] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("E_1")
-                    elif "E_2" in line:
-                        params[8] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("E_2")
-                    elif "nu_1" in line:
-                        params[9] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("nu_1")
-                    elif "nu_2" in line:
-                        params[10] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("nu_2")
-                    elif "rho_1" in line:
-                        params[11] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("rho_1")
-                    elif "rho_2" in line:
-                        params[12] = float(line.split(",")[1].split(";")[0])
-                        input_names.append("rho_2")
+                    if typeField != "Ellipse":
+                        # We are not interested in the threshold
+                        if "threshold" in line:
+                            continue
+                        elif "eps_11" in line:
+                            params[0] = float(line.split(",")[1].split(";")[0])
+                            input_names[0] = ("eps_11")
+                        elif "eps_22" in line:
+                            params[1] = float(line.split(",")[1].split(";")[0])
+                            input_names[1] = ("eps_22")
+                        elif "alpha" in line:
+                            params[2] = float(line.split(",")[1].split(";")[0])
+                            input_names[2] = ("alpha")
+                        elif "lx" in line:
+                            params[3] = float(line.split(",")[1].split(";")[0])
+                            input_names[3] = ("lx")
+                        elif "ly" in line:
+                            params[4] = float(line.split(",")[1].split(";")[0])
+                            input_names[4] = ("ly")
+                        elif "nx" in line:
+                            tmp       = float(line.split(",")[1].split(";")[0])
+                            params[5] = params[3] / tmp
+                            input_names[5] = ("nx")
+                        elif "ny" in line:
+                            tmp = float(line.split(",")[1].split(";")[0])
+                            params[6] = params[4] / tmp
+                            input_names[6] = ("ny")
+                        elif "E_1" in line:
+                            params[7] = float(line.split(",")[1].split(";")[0])
+                            input_names[7] = ("E_1")
+                        elif "E_2" in line:
+                            params[8] = float(line.split(",")[1].split(";")[0])
+                            input_names[8] = ("E_2")
+                        elif "nu_1" in line:
+                            params[9] = float(line.split(",")[1].split(";")[0])
+                            input_names[9] = ("nu_1")
+                        elif "nu_2" in line:
+                            params[10] = float(line.split(",")[1].split(";")[0])
+                            input_names[10] = ("nu_2")
+                        elif "rho_1" in line:
+                            params[11] = float(line.split(",")[1].split(";")[0])
+                            input_names[11] = ("rho_1")
+                        elif "rho_2" in line:
+                            params[12] = float(line.split(",")[1].split(";")[0])
+                            input_names[12] = ("rho_2")
+                        else:
+                            raise Exception("Cannot parse line " + line)
                     else:
-                        raise Exception("Cannot parse line " + line)
+                        par_value = float(line.split(",")[1].split(";")[0])
+                        #print(line)
+                        Found = False
+                        for counter_tmp,name in enumerate(["a","b","t","x0","y0","lx_min","lx_max","ly_min","ly_max","nx","ny","E_1","E_2","nu_1","nu_2"]):
+                            if name == line.split(",")[0]:
+                                params[counter_tmp] = par_value
+                                input_names[counter_tmp] = name
+                                #print("> Found " + name)
+                                #print(input_names)
+                                #print(params)
+                                Found = True
+                                break
+                        if not Found and "rho" not in line:
+                            raise Exception("Cannot find : " + line)
+
             # Elastic tensor file
             TensorFile = os.path.join(
                 folder,
@@ -428,7 +505,11 @@ def GenerateDataset(folders,params_file,do_computations,out_dir):
 
     return timings
                 
-def GenerateData_workflow(do_computations,do_only):
+def GenerateData_workflow(
+    do_computations,
+    do_only,
+    typeField
+):
 
     timings = {}
 
@@ -443,7 +524,9 @@ def GenerateData_workflow(do_computations,do_only):
         out_dir    = do_computations["SamplingParametersLHS"][1],
         PLOT       = do_computations["SamplingParametersLHS"][2],
         do_computations = do_computations["SamplingParametersLHS"][3],
-        do_only = do_only
+        do_only = do_only,
+        typeField = typeField,
+        params_domain = do_computations["GenerateGMSH"][0]
     )
     timings["SamplingParametersLHS"] = timings_tmp
     timings["SamplingParametersLHS_all"] = time.time()-start
@@ -459,6 +542,7 @@ def GenerateData_workflow(do_computations,do_only):
         files               = param_sampling_files,
         out_dir             = do_computations["GenerateGMSH"][1],
         do_computations = do_computations["GenerateGMSH"][2],
+        typeField = typeField
     )
     timings["GenerateGMSH"] = timings_tmp
     timings["GenerateGMSH_all"] = time.time()-start
@@ -480,7 +564,8 @@ def GenerateData_workflow(do_computations,do_only):
         folders             = folders_with_homo,
         params_file         = do_computations["GenerateDataset"][0],
         do_computations     = do_computations["GenerateDataset"][2],
-        out_dir             = do_computations["GenerateDataset"][1]
+        out_dir             = do_computations["GenerateDataset"][1],
+        typeField = typeField
         )
     timings["GenerateDataset"] = timings_tmp
     timings["GenerateDataset_all"] = time.time()-start
@@ -501,29 +586,51 @@ if __name__ == "__main__":
     else:
         do_only = -1
 
+    typeField = "Ellipse"
+
     project_root = os.getcwd().split("3DPrinting")[0]
 
     print("> Project root is :",project_root)
 
-    do_computations = {
-        "SamplingParametersLHS" : [
-            os.path.join(project_root,"3DPrinting/INPUTS/ParameterSpaceSampling.json"),
-            os.path.join(project_root,"3DPrinting/OUTPUTS/ParameterSpaceSampling"),
-            False,True],
-        "GenerateGMSH"          : [
-            os.path.join(project_root,"3DPrinting/INPUTS/DomainProperties.json"),
-            os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES"),
-            False],
-        "HomogenizationProblem" : [
-            os.path.join(project_root,"3DPrinting/INPUTS/MaterialProperties.json"),
-            True],
-        "GenerateDataset"       : [
-            os.path.join(project_root,"3DPrinting/INPUTS/DatasetParams.json"),
-            os.path.join(project_root,"3DPrinting/OUTPUTS/Datasets"),
-            True]
-    }
+    if typeField == "Ellipse":
+        do_computations = {
+            "SamplingParametersLHS" : [
+                os.path.join(project_root,"3DPrinting/INPUTS/ParameterSpaceSampling_Ellipse.json"),
+                os.path.join(project_root,"3DPrinting/OUTPUTS/ParameterSpaceSampling_Ellipse"),
+                False,False],
+            "GenerateGMSH"          : [
+                os.path.join(project_root,"3DPrinting/INPUTS/DomainProperties_Ellipse.json"),
+                os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES_Ellipse"),
+                False],
+            "HomogenizationProblem" : [
+                os.path.join(project_root,"3DPrinting/INPUTS/MaterialProperties_Ellipse.json"),
+                False],
+            "GenerateDataset"       : [
+                os.path.join(project_root,"3DPrinting/INPUTS/DatasetParams_Ellipse.json"),
+                os.path.join(project_root,"3DPrinting/OUTPUTS/Datasets_Ellipse"),
+                True]
+        }
+    else:
+        do_computations = {
+            "SamplingParametersLHS" : [
+                os.path.join(project_root,"3DPrinting/INPUTS/ParameterSpaceSampling.json"),
+                os.path.join(project_root,"3DPrinting/OUTPUTS/ParameterSpaceSampling"),
+                False,True],
+            "GenerateGMSH"          : [
+                os.path.join(project_root,"3DPrinting/INPUTS/DomainProperties.json"),
+                os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES"),
+                False],
+            "HomogenizationProblem" : [
+                os.path.join(project_root,"3DPrinting/INPUTS/MaterialProperties.json"),
+                True],
+            "GenerateDataset"       : [
+                os.path.join(project_root,"3DPrinting/INPUTS/DatasetParams.json"),
+                os.path.join(project_root,"3DPrinting/OUTPUTS/Datasets"),
+                True]
+        }
     pprint.pprint(do_computations)
     GenerateData_workflow(
         do_computations = do_computations,
-        do_only = do_only
+        do_only = do_only,
+        typeField = typeField
     )

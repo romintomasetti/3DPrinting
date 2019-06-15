@@ -376,7 +376,7 @@ class SolveHomogenization:
                 # Periodic boundary conditions on 4 lines of tag 1, 2, 3, 4
                 fin.write("if Do_3D is False:\n")
                 fin.write("\tmicroBC.setBCPhysical(1,4,3,2)\n")
-                fin.write("else:")
+                fin.write("else:\n")
                 fin.write("\tmicroBC.setBCPhysical(88880,88883,88884,88881,88882,88885)\n")
 
                 fin.write("method =0	# Periodic mesh = 0, Langrange interpolation = 1, Cubic spline interpolation =2,  FE linear= 3, FE Quad = 4\n")
@@ -432,10 +432,10 @@ class SolveHomogenization:
                 else:
                     #stress averaging flag and averaging method 0- VOLUME, 1- SURFACE
                     fin.write("mysolver.stressAveragingFlag(bool(1)) # set stress averaging ON- 0 , OFF-1\n")
-                    fin.write("mysolver.setStressAveragingMethod(1) # 0 -volume 1- surface\n")
+                    fin.write("mysolver.setStressAveragingMethod(0) # 0 -volume 1- surface\n")
                     #tangent averaging flag
                     fin.write("mysolver.tangentAveragingFlag(bool(1)) # set tangent averaging ON -0, OFF -1\n")
-                    fin.write("mysolver.setTangentAveragingMethod(1,1e-6) # 0- perturbation 1- condensation\n")
+                    fin.write("mysolver.setTangentAveragingMethod(2,1e-6) # 0- perturbation 1- condensation\n")
 
                 #mysolver.setExtractPerturbationToFileFlag(0)	
 

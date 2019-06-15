@@ -77,7 +77,8 @@ class MaterialField:
         Alphas,Lengths,Nodes,Samples,
         consider_as_zero,AngleType,
         isOrthotropicTest = False,
-        RatioHighestSmallestEig = 100.0):
+        RatioHighestSmallestEig = 100.0
+    ):
         """
         Initialization.
         Parameters
@@ -881,7 +882,7 @@ class MaterialField:
                     "seconds.")
 
         return files_geo
-
+   
     def Create(self,eig_vec_to_plot = 0) -> None:
         """
         Create the material fields.
