@@ -21,7 +21,7 @@
         "nodes"            : [20,20],
         "threshold"        : 0.0,
         "consider_as_zero" : 1.0e-14,
-        "num_samples"      : [5]
+        "num_samples"      : [1]
     },
     "SamplingParameterSpaceTestSpeed_4" : {
         "AngleType"        : "degree",

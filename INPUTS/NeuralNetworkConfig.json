@@ -1,0 +1,28 @@
+{
+    "FullyConnectedNetwork_EcliNorm" : {
+        "loss_function_type" : "EuclidianTensor",
+        "comment00"          : "Fully-Connected [FC] and no Cluster, 2 layers of 10 neurons each, tanh activation",
+        "comment01"          : "Output of NN is 21 in size.",
+        "size_output"        : 21,
+        "comment02"          : "Input of NN is 13 in size",
+        "size_input"         : 13,
+        "comment03"          : "Number of training epochs",
+        "epochs"             : 5000,
+        "comment04_A"        : "cluster info [number of pairs Function/Context,number of ... ",
+        "comment04_B"        : "layers in each Function/Context network,number of neurons in each ... ",
+        "comment04_C"        : "layer,activation function in cluster NN]",
+        "contextNN_state"    : [0,0,0,"tanh"],
+        "comment05_A"        : "Cluster input size, can be different from overall NN input size if ... ",
+        "comment05_B"        : "NN is composed of FC and cluster NN",
+        "Cluster_input_size" : 0,
+        "comment06"          : "Number of layers in the FC preceding the cluster NN",
+        "FC_num_layers"      : 1,
+        "FC_num_neurons"     : [5],
+        "FC_activations"     : ["tanh"],
+        "comment07"          : "How many data pairs are dedicated to validation ?",
+        "PartionningTrainingValidation" : 0.85,
+        "input_names"        : ["eps_11","eps_22","alpha","E_1","E_2","nu_1","nu_2","rho_1","rho_2"],
+        "output_names"       :["C_0000","C_1111","C_2222","C_0011","C_0022","C_1122","C_0012","C_1112","C_2212","C_1212","C_0002","C_1102","C_2202","C_1202","C_0202","C_0002","C_1101","C_2201","C_1201","C_0201","C_0101"]
+        
+    }
+}
