@@ -11,7 +11,7 @@ class Point:
         self.dens = dens
 
     def ToGMSH(self,file):
-        file.write("Point(%d) = {%.3f,%.3f,%.3f,%.1f};\n"%(\
+        file.write("Point(%d) = {%.15f,%.15f,%.15f,%.15f};\n"%(\
                 self.ID,
                 self.x,
                 self.y,
@@ -49,7 +49,7 @@ class Line:
             self.pt_beg.ID,
             self.pt_end.ID
         ))
-        file.write("Transfinite Line{%d} = %.2f;\n"%(\
+        file.write("Transfinite Line{%d} = %.15f;\n"%(\
             self.ID,
             self.dens))
 

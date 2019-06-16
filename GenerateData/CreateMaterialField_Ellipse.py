@@ -100,10 +100,10 @@ class MaterialField_Ellipse:
 
         with open(filename_geo,"w+") as geo:
             # Domain length
-            geo.write("_LxMIN = %.5f;\n"%self.Lengths[0][0])
-            geo.write("_LxMAX = %.5f;\n"%self.Lengths[0][1])
-            geo.write("_LyMIN = %.5f;\n"%self.Lengths[1][0])
-            geo.write("_LyMAX = %.5f;\n"%self.Lengths[1][1])
+            geo.write("_LxMIN = %.15f;\n"%self.Lengths[0][0])
+            geo.write("_LxMAX = %.15f;\n"%self.Lengths[0][1])
+            geo.write("_LyMIN = %.15f;\n"%self.Lengths[1][0])
+            geo.write("_LyMAX = %.15f;\n"%self.Lengths[1][1])
             
             # Domain division
             geo.write("_nx = %d;\n"%self.Nodes[0])
@@ -282,7 +282,8 @@ class MaterialField_Ellipse:
                 curve_loop_counter += 1
             
             # Physical curves around the 2D plane
-            eps = 1e-9
+            eps = 1e-8
+            geo.write("Geometry.Tolerance = 1e-9;\n")
             # For y = 0
             geo.write("// For y = ylim_min\n")
             geo.write(
@@ -363,7 +364,7 @@ class MaterialField_Ellipse:
                 geo.write(string)
                 
                 # Physical volume
-                geo.write("VolumesMaterial_%d[] = Extrude {0.0,0.0,%.3f}{\n"%(counter_phys_surf,extrude_z))
+                geo.write("VolumesMaterial_%d[] = Extrude {0.0,0.0,%.15f}{\n"%(counter_phys_surf,extrude_z))
                 geo.write("\tSurface{MaterialSurfaces_%d[{0:#MaterialSurfaces_%d[]-1}]};\n"%(\
                     counter_phys_surf,counter_phys_surf))
                 geo.write("\tLayers{LAYERS};\n\tRecombine;\n};\n")
