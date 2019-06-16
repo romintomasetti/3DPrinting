@@ -82,7 +82,11 @@ class NeuralNetworkTrainer:
         self.minimums_input_train[indices] = 0
 
 
-    def train(self,model,epochs,mins_norm,maxs_norm) -> None:
+    def train(
+        self,
+        model,
+        epochs,mins_norm,maxs_norm,
+        config_name,RANDOM_SEED,save_every_epochs) -> None:
         """
         Train the given type of neural network.
         Parameters
@@ -95,8 +99,15 @@ class NeuralNetworkTrainer:
             Min values for normalization
         maxs_norm = numpy.ndarray (float)
             Max values for normalization
+        config_name : str
+            Name of the configuration, for file naming purposes
+        RANDOM_SEED : int
+            Random seed for reproducible results
+        save_every_epochs : int
+            Save every given number of elaspsed epoch (epoch%save_every_epochs == 0)
         """
         with tensorflow.Session(graph=tensorflow.Graph()) as sess:
+            tensorflow.set_random_seed(RANDOM_SEED)
             # Model input
             model_input = tensorflow.placeholder(
                 self.datatype, [None, self.dataset["size_input"]],
@@ -124,7 +135,9 @@ class NeuralNetworkTrainer:
                 writer,
                 model.getModel(),
                 model_input,
-                epochs = epochs
+                epochs = epochs,
+                config_name = config_name;
+                save_every_epochs = save_every_epochs
             )
 
             if self.save_tensorboard:
@@ -140,7 +153,9 @@ class NeuralNetworkTrainer:
         writer,
         model,
         model_input,
-        epochs):
+        epochs,
+        config_name,
+        save_every_epochs):
 
         # Global step
         global_step = tensorflow.Variable(0, name='global_step',trainable=False)
@@ -251,14 +266,18 @@ class NeuralNetworkTrainer:
                 pass
 
         # Initialize the model saver
-        if os.path.exists(self.best_checkpoint_dir):
-            for root, dirs, files in os.walk(self.best_checkpoint_dir, topdown=False):
+        best_checkpoint_directory = os.path.join(
+            self.best_checkpoint_dir,
+            config_name
+        )
+        if os.path.exists(best_checkpoint_directory):
+            for root, dirs, files in os.walk(best_checkpoint_directory, topdown=False):
                 for name in files:
                     os.remove(os.path.join(root, name))
                 for name in dirs:
                     os.rmdir(os.path.join(root, name))
         best_ckpt_saver = BestCheckpointSaver(
-            save_dir = self.best_checkpoint_dir,
+            save_dir = best_checkpoint_directory,
             num_to_keep=1,
             maximize=False,
             saver=tensorflow.train.Saver()
@@ -285,7 +304,7 @@ class NeuralNetworkTrainer:
                 }
             )
             # Save and summary
-            if epoch%50 == 0 or epoch == epochs-1:
+            if epoch%save_every_epochs == 0 or epoch == epochs-1:
                 loss = sess.run(
                     loss_function,
                     feed_dict={
@@ -351,7 +370,7 @@ class NeuralNetworkTrainer:
                             tmptmp_arr_1 = predicted[tmptmp_i,:]
                             tmptmp_arr_2 = self.dataset["Expected_validation"][tmptmp_i,:]
                             fout.write(
-                                "E : " 
+                                "Pred : " 
                                 + numpy.array2string(
                                     tmptmp_arr_1,
                                     formatter=formatterValue
@@ -359,7 +378,7 @@ class NeuralNetworkTrainer:
                                 + "\n"
                             )
                             fout.write(
-                                "P : " 
+                                "Expec : " 
                                 + numpy.array2string(
                                     tmptmp_arr_2,
                                     formatter=formatterValue
@@ -388,7 +407,7 @@ class NeuralNetworkTrainer:
         saver = tensorflow.train.Saver()
         best_checkpoint_path = \
             get_best_checkpoint(
-                self.best_checkpoint_dir,
+                best_checkpoint_directory,
                 select_maximum_value=False
             )
         saver.restore(

@@ -144,7 +144,9 @@ def read_dataset(
 def TrainNetwork_workflow(
     config_file,
     config_name,
-    dataset_file
+    dataset_file,
+    RANDOM_SEED,
+    save_every_epochs
 ):
     config_parameters = json.load(open(config_file,"r"))
 
@@ -190,7 +192,9 @@ def TrainNetwork_workflow(
 
     trainer = NeuralNetworkTrainer(
         name               = config_name,
-        logs_directory     = "NetworkTrainerLogs/" + os.path.basename(config_file).split(".json")[0],
+        logs_directory     = "NetworkTrainerLogs/" \
+                                + os.path.basename(config_file).split(".json")[0] \
+                                + "/" + config_name,
         dataset            = dataset,
         loss_function_type = params["loss_function_type"]
     )
@@ -199,15 +203,33 @@ def TrainNetwork_workflow(
         model,
         epochs = params["epochs"],
         mins_norm = mins_norm,
-        maxs_norm = maxs_norm
+        maxs_norm = maxs_norm,
+        config_name = config_name,
+        RANDOM_SEED = RANDOM_SEED,
+        save_every_epochs = save_every_epochs
     )
 
 if __name__ == "__main__":
 
+    RANDOM_SEED = 963258741
+
+    save_every_epochs = 10
+
     project_root = os.getcwd().split("3DPrinting")[0]
 
-    TrainNetwork_workflow(
-        config_file  = os.path.join(project_root,"3DPrinting/INPUTS/NeuralNetworkConfig.json"),
-        config_name  = "FullyConnectedNetwork_EcliNorm",
-        dataset_file = os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES/SamplingParameterSpaceTest_1.csv")
-    )
+    config_file  = os.path.join(project_root,"3DPrinting/INPUTS/NeuralNetworkConfig.json")
+
+    params_to_study = json.load(open(config_file,"r"))
+
+    for config_name in params_to_study:
+
+        print(100*"#")
+        print(config_name)
+
+        TrainNetwork_workflow(
+            config_file  = config_file,
+            config_name  = config_name,
+            dataset_file = os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES/SamplingParameterSpaceTest_1.csv"),
+            RANDOM_SEED = RANDOM_SEED,
+            save_every_epochs = save_every_epochs
+        )
