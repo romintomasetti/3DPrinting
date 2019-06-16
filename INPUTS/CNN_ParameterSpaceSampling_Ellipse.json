@@ -1,0 +1,7 @@
+{
+    "CNN_SamplingParameterSpaceTest_1" : {
+        "paramsName"  : ["a","b","t","x0","y0"],
+        "num_pts"     : 20,
+        "aspectRatio" : 10
+    }
+}

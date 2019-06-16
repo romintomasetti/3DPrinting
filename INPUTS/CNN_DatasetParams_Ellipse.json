@@ -1,0 +1,8 @@
+{
+    "CNN_SamplingParameterSpaceTest_1" : {
+        "datafolder" : "CNN_SamplingParameterSpaceTest_1",
+        "sizeinput"  : 15,
+        "sizeoutput" : 21,
+        "PartitionTrainValid" : 0.2
+    }
+}
