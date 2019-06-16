@@ -106,7 +106,12 @@ class NeuralNetworkTrainer:
         save_every_epochs : int
             Save every given number of elaspsed epoch (epoch%save_every_epochs == 0)
         """
-        with tensorflow.Session(graph=tensorflow.Graph()) as sess:
+        session_conf = tensorflow.ConfigProto(
+            intra_op_parallelism_threads=4,
+            inter_op_parallelism_threads=4,
+            device_count={'CPU': 1}
+        )
+        with tensorflow.Session(graph=tensorflow.Graph(),config=session_conf) as sess:
             tensorflow.set_random_seed(RANDOM_SEED)
             # Model input
             model_input = tensorflow.placeholder(
@@ -136,7 +141,7 @@ class NeuralNetworkTrainer:
                 model.getModel(),
                 model_input,
                 epochs = epochs,
-                config_name = config_name;
+                config_name = config_name,
                 save_every_epochs = save_every_epochs
             )
 
