@@ -203,8 +203,11 @@ def TrainNetwork_workflow(
     )
 
 if __name__ == "__main__":
+
+    project_root = os.getcwd().split("3DPrinting")[0]
+
     TrainNetwork_workflow(
-        config_file  = "/home/romin/NewMethodsComputational/3DPrinting/INPUTS/NeuralNetworkConfig.json",
+        config_file  = os.path.join(project_root,"3DPrinting/INPUTS/NeuralNetworkConfig.json"),
         config_name  = "FullyConnectedNetwork_EcliNorm",
-        dataset_file = "/home/romin/NewMethodsComputational/3DPrinting/OUTPUTS/GMSH_FILES/SamplingParameterSpaceTest_1.csv"
+        dataset_file = os.path.join(project_root,"3DPrinting/OUTPUTS/GMSH_FILES/SamplingParameterSpaceTest_1.csv")
     )
