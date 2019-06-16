@@ -95,7 +95,7 @@ class SolveHomogenization:
             sys.stdout = sys.__stdout__
 
 
-    def Execute(self,do_computations,minutes_for_homo=40) -> list:
+    def Execute(self,do_computations,minutes_for_homo=30,MAX_SUBPROCESSES=70) -> list:
         """
         Execute Python 2 files stored in self.ToExecute list.
         Returns
@@ -211,9 +211,19 @@ class SolveHomogenization:
                     " > %s.out 2>&1"%os.path.splitext(os.path.basename(python_file))[0]
                 )
                 """
+                while len(subprocesses) > MAX_SUBPROCESSES:
+                    to_pop_out = []
+                    for subproc in range(len(subprocesses)):
+                        if subprocesses[subproc].poll() is not None:
+                            to_pop_out.append(subproc)
+                    to_pop_out = numpy.flip(to_pop_out)
+                    for pop_out in to_pop_out:
+                        subprocesses.pop(pop_out)
+                    time.sleep(3)
                 print("\t> Done in ",time.time()-start," seconds.")
                 # Roll back to old working directory
                 os.chdir(old_dir)
+                sys.stdout.flush()
                 # Rool back to stdout
                 #sys.stdout = sys.__stdout__
         return folders,subprocesses

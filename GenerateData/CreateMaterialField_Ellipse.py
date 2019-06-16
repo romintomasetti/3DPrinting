@@ -60,7 +60,7 @@ class MaterialField_Ellipse:
         self.x0 = x0
         self.y0 = y0
 
-    def ToGMSH(self,Do_3D,num_3d_layers=1) -> list:
+    def ToGMSH(self,Do_3D,num_3d_layers=1,do_computations=True) -> list:
         """
         Transform realizations of the random material field in GMSH file.
         """
@@ -94,6 +94,10 @@ class MaterialField_Ellipse:
 
         start = time.time()
         # Write the .geo file
+
+        if not do_computations:
+            return files_geo
+
         with open(filename_geo,"w+") as geo:
             # Domain length
             geo.write("_LxMIN = %.5f;\n"%self.Lengths[0][0])
