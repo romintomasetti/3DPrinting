@@ -38,6 +38,7 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only,typeFi
             if do_only != experiment:
                 continue
         print("\t> ",SamplingParametersLHS.__name__," : ",experiment)
+        sys.stdout.flush()
         start = time.time()
         # LHS sampling
         if do_computations:
@@ -83,6 +84,7 @@ def SamplingParametersLHS(param_file,out_dir,PLOT,do_computations,do_only,typeFi
                     else:
                         to_take.append(counter_point)
                 print("\t\t> Selecting ",len(to_take)," ellipses out of ",len(points)," !")
+                sys.stdout.flush()
                 points = points[to_take]
         # Save points
         file_names[experiment] = os.path.join(out_dir,experiment)
@@ -143,6 +145,7 @@ def GenerateGMSH(general_params_file,files,out_dir,do_computations,typeField):
             print("\t\t" + 50 * "*-" + "*")
             print("\t\t> Doing domain ",counter," out of ",len(params))
             print("\t\t> eps_11 %.1e | eps_22 %.1e | alpha %.1e"%(point[0],point[1],point[2]))
+            sys.stdout.flush()
 
             text_trap = io.StringIO()
             sys.stdout = text_trap
@@ -182,10 +185,10 @@ def GenerateGMSH(general_params_file,files,out_dir,do_computations,typeField):
                 if do_computations:
                     MatFieldCreator.Create()
                 gmsh_files[os.path.join(out_dir,file)]["_sample_" + str(counter)] = \
-                    MatFieldCreator.ToGMSH(Do_3D = Do_3D)
+                    MatFieldCreator.ToGMSH(Do_3D = Do_3D,do_computations=do_computations)
 
             sys.stdout = sys.__stdout__
-
+            sys.stdout.flush()
             print("\t\t> Mean generation time : ",(time.time()-start)/(counter+1))
 
         timings[file] = time.time()-start
@@ -238,6 +241,8 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
             Do_3D = Do_3D
         )
 
+        sys.stdout.flush()
+
         folders_with_homo[experiment],subprocs = homogenization_solver.Execute(do_computations)
 
         if len(subprocs) > 0:
@@ -254,6 +259,8 @@ def HomogenizationProblem(mat_props_file,gmsh_files,do_computations):
                 time.sleep(3)
 
         homogenization_solver.Analyse()
+
+        sys.stdout.flush()
 
         timings[experiment.split("/")[-1]] = time.time()-start
 
@@ -403,6 +410,11 @@ def GenerateDataset(folders,params_file,do_computations,out_dir,typeField):
                         if not Found and "rho" not in line:
                             raise Exception("Cannot find : " + line)
 
+            if typeField == "Ellipse":
+                input_names[-1] = "Ltot"
+                length_tot = params[input_names.index("lx_max")]-params[input_names.index("lx_min")]
+                params[-1] = length_tot
+
             # Elastic tensor file
             TensorFile = os.path.join(
                 folder,
@@ -518,6 +530,7 @@ def GenerateData_workflow(
     print("> There are ",cpu_count," cpus.")
 
     # LHS sampling of the parameter space:
+    sys.stdout.flush()
     start = time.time()
     param_sampling_files,timings_tmp = SamplingParametersLHS(
         param_file = do_computations["SamplingParametersLHS"][0],
@@ -536,6 +549,7 @@ def GenerateData_workflow(
         sys.exit()
 
     # Generate GMSH files
+    sys.stdout.flush()
     start = time.time()
     gmsh_files,timings_tmp = GenerateGMSH(
         general_params_file = do_computations["GenerateGMSH"][0],
@@ -559,6 +573,7 @@ def GenerateData_workflow(
     print("*** INFO *** Homogenization took ",timings["SolveHomogenization_all"])
 
     # Generate dataset
+    sys.stdout.flush()
     start = time.time()
     timings_tmp = GenerateDataset(
         folders             = folders_with_homo,
