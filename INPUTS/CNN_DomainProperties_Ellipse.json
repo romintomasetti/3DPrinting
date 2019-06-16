@@ -2,6 +2,6 @@
     "CNN_SamplingParameterSpaceTest_1" : {
         "AngleType"        : "degree",
         "domain_limits"    : [[-2.5,2.5],[-2.5,2.5]],
-        "nodes"            : [20,20]
+        "nodes"            : [100,100]
     }
 }
